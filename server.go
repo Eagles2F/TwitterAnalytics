@@ -35,6 +35,12 @@ func initConfig() {
 	file.Close()
 }
 
+func index(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Content-Length", "0")
+	io.WriteString(w, "")
+}
+
 func q1Handler(w http.ResponseWriter, r *http.Request) {
 	// Get parameters
 	key := r.URL.Query().Get("key")
@@ -93,6 +99,7 @@ func decipher(message string, key string) string {
 
 func main() {
 	initConfig()
+	http.HandleFunc("/index.html", index)
 	http.HandleFunc("/q1", q1Handler)
 	http.ListenAndServe(fmt.Sprintf(":%d", config.HttpPort), nil)
 }
