@@ -40,9 +40,11 @@ func q1Handler(w http.ResponseWriter, r *http.Request) {
 	message := r.URL.Query().Get("message")
 	// Time
 	now := time.Now()
-	response := fmt.Sprintf("%s,%s\n%s\n%s\n", config.TeamId, config.TeamAwsAccountId,
+	body := fmt.Sprintf("%s,%s\n%s\n%s\n", config.TeamId, config.TeamAwsAccountId,
 		now.Format("2006-01-02 15:04:05"), decipher(message, key))
-	io.WriteString(w, response)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Content-Length", string(len(body)))
+	io.WriteString(w, body)
 }
 
 func decipher(message string, key string) string {
