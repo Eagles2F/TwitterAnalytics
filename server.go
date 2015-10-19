@@ -1,16 +1,16 @@
 package main
 
 import (
-	"math/big"
-	"math"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/big"
 	"net/http"
-	"unicode/utf8"
 	"os"
 	"time"
-	"bytes"
+	"unicode/utf8"
 )
 
 type Config struct {
@@ -28,6 +28,7 @@ func initConfig() {
 	if err != nil {
 		fmt.Println("error:", err)
 	}
+	file.Close()
 }
 
 func q1Handler(w http.ResponseWriter, r *http.Request) {
@@ -43,45 +44,45 @@ func q1Handler(w http.ResponseWriter, r *http.Request) {
 
 func decipher(message string, key string) string {
 	//calculate key Y
-    sk := big.NewInt(0)
-    sk.SetString(config.SecretKey, 10)
-    k := big.NewInt(0)
-    k.SetString(key, 10)
-    var y big.Int;
-    y.Div(k, sk)
-    n := int(math.Sqrt(float64(utf8.RuneCountInString(message))))
+	sk := big.NewInt(0)
+	sk.SetString(config.SecretKey, 10)
+	k := big.NewInt(0)
+	k.SetString(key, 10)
+	var y big.Int
+	y.Div(k, sk)
+	n := int(math.Sqrt(float64(utf8.RuneCountInString(message))))
 
-    //de-diagonalize
-    var buffer bytes.Buffer;
+	//de-diagonalize
+	var buffer bytes.Buffer
 
-    for i := 0; i < 2*n - 1; i++ {
-        var z int
-        if i < n {
-            z = 0;
-        } else {
-            z = i - n + 1
-        }
-        for j := z; j <= i - z; j++ {
-            buffer.WriteString(string(message[j*n + i - j]))
-        }
-    }
+	for i := 0; i < 2*n-1; i++ {
+		var z int
+		if i < n {
+			z = 0
+		} else {
+			z = i - n + 1
+		}
+		for j := z; j <= i-z; j++ {
+			buffer.WriteString(string(message[j*n+i-j]))
+		}
+	}
 
-    intermediate := buffer.String()
+	intermediate := buffer.String()
 
-    //shift back
-    yn:= y.Int64()
-    z := yn % 25 + 1
-    zint := int(z)
-    var buffer1 bytes.Buffer;
-    for i := 0; i < len(intermediate); i++ {
-        order := int(intermediate[i] - 'A')
-        if order < zint {
-            buffer1.WriteString(string('Z' - (zint - order - 1)))
-        } else {
-            buffer1.WriteString(string(int(intermediate[i]) - zint))
-        }
-    }
-    return buffer1.String()
+	//shift back
+	yn := y.Int64()
+	z := yn%25 + 1
+	zint := int(z)
+	var buffer1 bytes.Buffer
+	for i := 0; i < len(intermediate); i++ {
+		order := int(intermediate[i] - 'A')
+		if order < zint {
+			buffer1.WriteString(string('Z' - (zint - order - 1)))
+		} else {
+			buffer1.WriteString(string(int(intermediate[i]) - zint))
+		}
+	}
+	return buffer1.String()
 }
 
 func main() {
