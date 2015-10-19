@@ -23,8 +23,11 @@ type Config struct {
 var config = Config{}
 
 func initConfig() {
-	file, _ := os.Open("config.json")
-	err := json.NewDecoder(file).Decode(&config)
+	file, err := os.Open("config.json")
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	err = json.NewDecoder(file).Decode(&config)
 	if err != nil {
 		fmt.Println("error:", err)
 	}
@@ -37,7 +40,7 @@ func q1Handler(w http.ResponseWriter, r *http.Request) {
 	message := r.URL.Query().Get("message")
 	// Time
 	now := time.Now()
-	response := fmt.Sprintf("%s,%s\n%s\n%s", config.TeamId, config.TeamAwsAccountId,
+	response := fmt.Sprintf("%s,%s\n%s\n%s\n", config.TeamId, config.TeamAwsAccountId,
 		now.Format("2006-01-02 15:04:05"), decipher(message, key))
 	io.WriteString(w, response)
 }
