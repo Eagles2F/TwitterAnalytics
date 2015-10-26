@@ -9,21 +9,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HBaseExample
-{
-    private HTableInterface pageViewTable;
+public class HBaseExample {
+    public static int CONNECTION_POOL_SIZE = 10;
+    private HTableInterface tweetTable;
 
-    public HBaseExample()
+    public HBaseExample(HTablePool pool)
     {
-        try
-        {
-            Configuration conf = HBaseConfiguration.create();
-            pageViewTable = new HTable( conf, "PageViews");
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+            tweetTable = pool.getTable("tweets");
     }
 
     public void close()
@@ -31,7 +23,7 @@ public class HBaseExample
         try
 
         {
-            pageViewTable.close();
+            tweetTable.close();
         }
         catch (IOException e)
         {
@@ -39,26 +31,35 @@ public class HBaseExample
         }
     }
 
-    public void put( PageView pageView )
+    public void put( Tweet tweet )
     {
         // Create a new Put object with the Row Key as the bytes of the user id
-        Put put = new Put( Bytes.toBytes( pageView.getUserId() ) );
+        Put put = new Put( Bytes.toBytes( tweet.getTweetId() ) );
 
         // Add the user id to the info column family
         put.add( Bytes.toBytes( "info" ),
                  Bytes.toBytes( "userId" ),
-                 Bytes.toBytes( pageView.getUserId() ) );
-
-        // Add the page to the info column family
+                 Bytes.toBytes( tweet.getUserId() ) );
+        // Add the tweetId to the info column family
         put.add( Bytes.toBytes( "info" ),
-                 Bytes.toBytes( "page" ),
-                 Bytes.toBytes( pageView.getPage() ) );
-        try
+                 Bytes.toBytes( "tweetId" ),
+                 Bytes.toBytes( tweet.getTweetId() ) );
+        // Add the time to the info column family
+        put.add( Bytes.toBytes( "info" ),
+                 Bytes.toBytes( "time" ),
+                 Bytes.toBytes( tweet.getTime() ) );
+        // Add the text to the info column family
+        put.add( Bytes.toBytes( "info" ),
+                 Bytes.toBytes( "text" ),
+                 Bytes.toBytes( tweet.getText() ) );
+        // Add the score to the info column family
+        put.add( Bytes.toBytes( "info" ),
+                 Bytes.toBytes( "score" ),
+                 Bytes.toBytes( tweet.getScore() ) );
 
-        {
-
-            // Add the PageView to the page view table
-            pageViewTable.put( put );
+        try {
+            // Add the tweet to the page view table
+            tweetTable.put( put );
         }
         catch( IOException e )
         {
@@ -66,30 +67,37 @@ public class HBaseExample
         }
     }
 
-    public PageView get( String rowkey )
+    public Tweet get( String rowkey )
 
     {
         try
         {
-
             // Create a Get object with the rowkey (as a byte[])
             Get get = new Get( Bytes.toBytes( rowkey ) );
 
             // Execute the Get
-            Result result = pageViewTable.get( get );
+            Result result = tweetTable.get( get );
 
             // Retrieve the results
-            PageView pageView = new PageView();
+            Tweet tweet = new Tweet();
             byte[] bytes = result.getValue( Bytes.toBytes( "info" ),
                                             Bytes.toBytes( "userId" ) );
-            pageView.setUserId( Bytes.toString( bytes ) );
+            tweet.setUserId( Bytes.toString( bytes ) );
             bytes = result.getValue( Bytes.toBytes( "info" ),
-                                     Bytes.toBytes( "page" ) );
-            pageView.setPage(Bytes.toString(bytes));
+                                     Bytes.toBytes( "tweetId" ) );
+            tweet.setTweetId(Bytes.toString(bytes));
+            bytes = result.getValue( Bytes.toBytes( "info" ),
+                                     Bytes.toBytes( "text" ) );
+            tweet.setText(Bytes.toString(bytes));
+            bytes = result.getValue( Bytes.toBytes( "info" ),
+                                     Bytes.toBytes( "time" ) );
+            tweet.setTime(Bytes.toString(bytes));
+            bytes = result.getValue( Bytes.toBytes( "info" ),
+                                     Bytes.toBytes( "score" ) );
+            tweet.setScore(Integer.valueOf(Bytes.toString(bytes)));
 
-
-            // Return the newly constructed PageView
-            return pageView;
+            // Return the newly constructed tweet
+            return tweet;
         }
         catch (IOException e)
         {
@@ -102,7 +110,7 @@ public class HBaseExample
         try
         {
             Delete delete = new Delete( Bytes.toBytes( rowkey ) );
-            pageViewTable.delete( delete );
+            tweetTable.delete( delete );
         }
         catch (IOException e)
         {
@@ -110,36 +118,44 @@ public class HBaseExample
         }
     }
 
-    public List<PageView> scan( String startRowKey, String endRowKey )
+    public List<Tweet> scan( String startRowKey, String endRowKey )
     {
         try
         {
             // Build a list to hold our results
-            List<PageView> pageViewResults = new ArrayList<PageView>();
-
+            List<Tweet> tweetResults = new ArrayList<Tweet>();
 
             // Create and execute a scan
             Scan scan = new Scan( Bytes.toBytes( startRowKey ), Bytes.toBytes( endRowKey ) );
-            ResultScanner results = pageViewTable.getScanner(scan);
+            ResultScanner results = tweetTable.getScanner(scan);
 
             for( Result result : results )
 
             {
-                // Build a new PageView
-                PageView pageView = new PageView();
+                // Build a new tweet
+                Tweet tweet = new Tweet();
                 byte[] bytes = result.getValue( Bytes.toBytes( "info" ),
-                        Bytes.toBytes( "userId" ) );
-                pageView.setUserId( Bytes.toString( bytes ) );
+                                                Bytes.toBytes( "userId" ) );
+                tweet.setUserId( Bytes.toString( bytes ) );
                 bytes = result.getValue( Bytes.toBytes( "info" ),
-                        Bytes.toBytes( "page" ) );
-                pageView.setPage(Bytes.toString(bytes));
+                                         Bytes.toBytes( "tweetId" ) );
+                tweet.setTweetId(Bytes.toString(bytes));
+                bytes = result.getValue( Bytes.toBytes( "info" ),
+                                         Bytes.toBytes( "text" ) );
+                tweet.setText(Bytes.toString(bytes));
+                bytes = result.getValue( Bytes.toBytes( "info" ),
+                                         Bytes.toBytes( "time" ) );
+                tweet.setTime(Bytes.toString(bytes));
+                bytes = result.getValue( Bytes.toBytes( "info" ),
+                                         Bytes.toBytes( "score" ) );
+                tweet.setScore(Integer.valueOf(Bytes.toString(bytes)));
 
-                // Add the PageView to our results
-                pageViewResults.add( pageView );
+                // Add the tweet to our results
+                tweetResults.add( tweet );
             }
 
             // Return our results
-            return pageViewResults;
+            return tweetResults;
         }
         catch (IOException e)
         {
@@ -151,34 +167,37 @@ public class HBaseExample
     public static void main( String[] args )
 
     {
-        HBaseExample example = new HBaseExample();
+        Configuration conf = HBaseConfiguration.create();
+        conf.set("hbase.zookeeper.quorum", "#server’s IP address#");
+        HTablePool pool = new HTablePool(conf, CONNECTION_POOL_SIZE);
+        HBaseExample example = new HBaseExample(pool);
 
         // Create two records
-        example.put( new PageView( "User1", "/mypage" ) );
-        example.put( new PageView( "User2","/mypage" ) );
+        example.put( new Tweet( "User1", "/mypage", "asdfad", "asdfdsa", 13 ) );
+        example.put( new Tweet( "User1", "/mypage", "asdfad", "asdfdsa", 132 ) );
 
         // Execute a Scan from "U" to "V"
-        List<PageView> pageViews = example.scan( "U", "V" );
-        if( pageViews != null ) {
-            System.out.println("Page Views:");
-            for (PageView pageView : pageViews) {
-                System.out.println("\tUser ID: " + pageView.getUserId() + ", Page: " + pageView.getPage());
+        List<Tweet> tweets = example.scan( "U", "V" );
+        if( tweets != null ) {
+            System.out.println("Tweets:");
+            for (Tweet tweet : tweets) {
+                System.out.println("\tUser ID: " + tweet.getUserId() + ", TweetID: " + tweet.getTweetId());
             }
         }
 
         // Get a specific row
-        PageView pv = example.get( "User1" );
-        System.out.println( "User ID: " + pv.getUserId() + ", Page: " + pv.getPage() );
+        Tweet tweet1 = example.get( "User1" );
+        System.out.println("\tUser ID: " + tweet1.getUserId() + ", TweetID: " + tweet1.getTweetId());
 
         // Delete a row
         example.delete( "User1" );
 
         // Execute another scan, which should just have User2 in it
-        pageViews = example.scan( "U", "V" );
-        if( pageViews != null ) {
+        tweets = example.scan( "U", "V" );
+        if( tweets != null ) {
             System.out.println("Page Views:");
-            for (PageView pageView : pageViews) {
-                System.out.println("\tUser ID: " + pageView.getUserId() + ", Page: " + pageView.getPage());
+            for (Tweet tweet : tweets) {
+                System.out.println("\tUser ID: " + tweet.getUserId() + ", TweetID: " + tweet.getTweetId());
             }
         }
 
