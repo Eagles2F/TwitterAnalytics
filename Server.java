@@ -4,6 +4,7 @@ import org.vertx.java.platform.Verticle;
 import org.vertx.java.core.http.RouteMatcher;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.MultiMap;
+import java.math.*;
 
 import java.text.SimpleDateFormat;
 
@@ -14,7 +15,41 @@ public class Server extends Verticle {
 
 
   public String decipher(String message, String key) {
-    return "";
+    BigInteger big1 = new BigInteger(key);
+    BigInteger big2 = new BigInteger(secretKey);
+    BigInteger big3 = big1.divide(big2);
+
+    int y = big3.intValue();
+
+    int n = (int) Math.sqrt((double) message.size());
+
+    StringBuilder sb = new StringBuilder();
+
+    for (int i=0; i<2*n - 1; i++) {
+        int z;
+        if (i < n) {
+            z = 0;
+        } else {
+            z = i - n + 1;
+        }
+        for (int j=z; j <= i - z; j++) {
+            sb.append(message.charAt(j*n + i - j));
+        }
+    }
+
+    String intermediate = sb.toString();
+
+    int zz = y % 25 + 1;
+    StringBuilder sb2 = new StringBuilder();
+    for (int i = 0; i < intermediate.size(); i ++) {
+        int order = (int) (intermediate.charAt(i) - 'A');
+        if (order < zz) {
+            sb2.append((String) ('Z' - (zz - order - 1)));
+        } else {
+            sb2.append((String) (intermediate.charAt(i) - zz));
+        }
+    }
+    return sb2.toString();
   }
 
   public void start() {
@@ -40,7 +75,7 @@ public class Server extends Verticle {
 				final String key = map.get("key");
 				final String message = map.get("message");
         String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System.currentTimeMillis());
-        String response = String.format("%s,%s\n%s\n%s\n", teamId, 
+        String response = String.format("%s,%s\n%s\n%s\n", teamId,
           accountId, timestamp, decipher(message, key));
 
         req.response().putHeader("Content-Type", "text/plain");
