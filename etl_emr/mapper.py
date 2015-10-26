@@ -11,6 +11,7 @@ from email import utils
 import time
 import json
 import sys,os
+import csv
 
 
 EARLEST_TIME = "Sun, 20 Apr 2014 00:00:00 GMT"
@@ -286,30 +287,39 @@ class Tweet(object):
 	"""
 	def get_filtered_text(self):
 		start = 0
-		end = 1
+		end = 0
 		self.text = self.raw_text
 		self.raw_text += '#'  # any non-alnum chr
 
 		score = 0
 		while start < len(self.raw_text):
-			sample = self.raw_text[start:end]
-			if not sample.isalnum():
-				word = self.raw_text[start:end-1]
+			#sample = self.raw_text[end]
+			if not self.__isalphanumeric(end):
+				#print self.raw_text[start:end] + ";"
+
+				if start == end:
+					start += 1
+					end = start
+					continue
+
+				word = self.raw_text[start:end]
 				word = word.lower()
 				if word in AFINITYDIC:
+					#print "to add score:" + word
 					score += AFINITYDIC[word]
 				word = self.__encrypt(word)
 				if word in BANSET:
-					self.text = self.__replace(start, end-1)
-				start = end
-				end = start + 1
+					#print "to replace:", word, ':',self.raw_text[start:end-1]
+					self.text = self.__replace(start, end)
+					#print 'after one replace:', self.text
+				start = end+1
+				end = start 
 			else:
 				end += 1
 
 		self.text = self.__fix_feed_line()
 
 		return self.text,score
-
 
 
 	def get_score(self):
@@ -324,15 +334,19 @@ class Tweet(object):
 	def __fix_feed_line(self):
 		return self.text.replace('\n','\\n')
 
+	def __isalphanumeric(self, index):
+		sample = self.raw_text[index]
+		if (sample >= 'a' and sample <= 'z') or (sample >= 'A' and sample <= 'Z') or (sample >= '0' and sample <= '9'):
+			return True
+		return False
 
 	def __replace(self, s, e):
-		if s>0:
-			st = s-1
-		else:
-			st = s
-		ed = e+1
+		st = 0
+		ed = e+10
 
 		word = self.text[st:ed]
+
+		
 
 		starnum = e - s - 2;
 		base = self.text[st:s+1]
@@ -342,6 +356,8 @@ class Tweet(object):
 			base += '*'
 			i += 1
 		after = base+self.text[e-1:ed]
+
+		#print "word replaced:",word,";with:",after
 		return self.text.replace(word,after)
 
 	def __encrypt(self, raw_word):
@@ -364,10 +380,12 @@ class Tweet(object):
 	def getResult(self):
 		txt, grade = self.get_filtered_text()
 		fmtime = self.get_format_time()
-		return "{user_id}\t{id},{time},{text},{score}".format(user_id = self.user_id, id=self.id, time = fmtime, 
-			text = txt.encode('utf_8'), score = grade)
+		# return "{user_id}\t{id},{time},{text},{score}".format(user_id = self.user_id, id=self.id, time = fmtime, 
+		# 	text = txt.encode('utf_8'), score = grade)
 		# return "{user_id},{id},{text},{score}".format(user_id = self.user_id, id=self.id, 
 		# 	text = txt.encode('utf_8'), score = grade)
+
+		return self.user_id,self.id,fmtime,txt.encode('utf_8'),grade
 
 class Ignore(Exception):
 	pass
@@ -377,6 +395,7 @@ if __name__ == '__main__':
 	#filepath=os.environ["mapreduce_map_input_file"]
 
 	#filepath = "jasonsample"
+	csvwriter = csv.writer(sys.stdout)
 	for line in sys.stdin:
 		
 		try:
@@ -384,7 +403,7 @@ if __name__ == '__main__':
 			#erline = line
 		
 			res = pass_result.getResult()
-			print res
+			csvwriter.writerow(res)
 			
 		except Ignore as e:
 			pass
