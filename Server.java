@@ -9,22 +9,18 @@ import java.math.*;
 import java.text.SimpleDateFormat;
 
 public class Server extends Verticle {
-  final static String teamId = "purrito";
-  final static String accountId = "339035512528";
-  final static String secretKey = "827199720896087247873518181557816672351992917789655884592225059551192139504912";
-
+  private final static String TEAM_ID = "purrito";
+  private final static String AWS_ACCOUNT_ID = "339035512528";
+  private final static String SECRET_KEY = "8271997208960872478735181815578166723519929177896558845922250595511921395049126920528021164569045773";
 
   public String decipher(String message, String key) {
     BigInteger big1 = new BigInteger(key);
-    BigInteger big2 = new BigInteger(secretKey);
+    BigInteger big2 = new BigInteger(SECRET_KEY);
     BigInteger big3 = big1.divide(big2);
 
     int y = big3.intValue();
-
-    int n = (int) Math.sqrt((double) message.size());
-
+    int n = (int) Math.sqrt((double) message.length());
     StringBuilder sb = new StringBuilder();
-
     for (int i=0; i<2*n - 1; i++) {
         int z;
         if (i < n) {
@@ -38,15 +34,14 @@ public class Server extends Verticle {
     }
 
     String intermediate = sb.toString();
-
     int zz = y % 25 + 1;
     StringBuilder sb2 = new StringBuilder();
-    for (int i = 0; i < intermediate.size(); i ++) {
-        int order = (int) (intermediate.charAt(i) - 'A');
+    for (int i = 0; i < intermediate.length(); i ++) {
+        int order = intermediate.charAt(i) - 'A';
         if (order < zz) {
-            sb2.append((String) ('Z' - (zz - order - 1)));
+            sb2.append(Character.toChars('Z' - (zz - order - 1)));
         } else {
-            sb2.append((String) (intermediate.charAt(i) - zz));
+            sb2.append(Character.toChars(intermediate.charAt(i) - zz));
         }
     }
     return sb2.toString();
@@ -75,8 +70,8 @@ public class Server extends Verticle {
 				final String key = map.get("key");
 				final String message = map.get("message");
         String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System.currentTimeMillis());
-        String response = String.format("%s,%s\n%s\n%s\n", teamId,
-          accountId, timestamp, decipher(message, key));
+        String response = String.format("%s,%s\n%s\n%s\n", TEAM_ID, 
+          AWS_ACCOUNT_ID, timestamp, decipher(message, key));
 
         req.response().putHeader("Content-Type", "text/plain");
         req.response().putHeader("Content-Length",
@@ -92,7 +87,7 @@ public class Server extends Verticle {
 				final String userId = map.get("userid");
 				final String tweetTime = map.get("tweet_time");
 
-        String response = String.format("%s,%s\n", teamId, accountId);
+        String response = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
 
         req.response().putHeader("Content-Type", "text/plain");
         req.response().putHeader("Content-Length",
