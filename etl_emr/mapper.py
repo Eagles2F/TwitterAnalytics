@@ -255,8 +255,20 @@ class Tweet(object):
 		self.data = json.loads(line_of_json)
 		self.raw_time = self.data.get("created_at")
 		self.id = self.data.get("id_str")
+
+		if self.id is None:
+			self.id = self.data.get("id")
+
 		self.raw_text = self.data.get("text")
+
+		if self.data.get("user") is None:
+			raise Ignore()
+
 		self.user_id = self.data.get("user").get("id_str")
+
+		if self.user_id is None:
+			self.user_id = self.data.get("user").get("id")
+
 		self.text = None
 		unixtime = time.mktime(email.utils.parsedate(self.raw_time))
 
