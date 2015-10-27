@@ -1,0 +1,11 @@
+mysql engine MyISAM VS InnoDB
+http://www.rackspace.com/knowledge_center/article/mysql-engines-myisam-vs-innodb#MyISAM_vs_Innodb_-_Quick_comparison_Table
+
+char vs varchar
+http://dev.mysql.com/doc/refman/5.0/en/char.html
+
+tweets max text length
+https://dev.twitter.com/overview/api/tweets
+
+mysql add index
+https://dev.mysql.com/doc/refman/5.5/en/innodb-create-index-examples.html

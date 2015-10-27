@@ -5,13 +5,17 @@ import org.vertx.java.core.http.RouteMatcher;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.MultiMap;
 import java.math.*;
+import java.util.ArrayList;
 
 import java.text.SimpleDateFormat;
+
 
 public class Server extends Verticle {
   private final static String TEAM_ID = "purrito";
   private final static String AWS_ACCOUNT_ID = "339035512528";
   private final static String SECRET_KEY = "8271997208960872478735181815578166723519929177896558845922250595511921395049126920528021164569045773";
+
+  private final static TweetDatastore datastore = new TweetDatastore();
 
   public String decipher(String message, String key) {
     BigInteger big1 = new BigInteger(key);
@@ -86,13 +90,19 @@ public class Server extends Verticle {
 				MultiMap map = req.params();
 				final String userId = map.get("userid");
 				final String tweetTime = map.get("tweet_time");
-
-        String response = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
+        // TODO: hack, should be removed once data is correct
+        final String timeInDb = tweetTime.replace(" ", "+");
+        // TODO: unescape the data 
+        ArrayList<String> tweets = datastore.selectTweets(userId, timeInDb);
+        StringBuilder response = new StringBuilder(String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID));
+        for (String tweet : tweets) {
+          response.append(tweet+"\n");
+        }
 
         req.response().putHeader("Content-Type", "text/plain");
         req.response().putHeader("Content-Length",
           String.valueOf(response.length()));
-        req.response().end(response);
+        req.response().end(response.toString());
 			}
     });
 
