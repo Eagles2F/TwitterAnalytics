@@ -4,8 +4,27 @@ import org.vertx.java.platform.Verticle;
 import org.vertx.java.core.http.RouteMatcher;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.MultiMap;
-import java.math.*;
 
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.hbase.filter.*;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
+
+import java.math.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.text.SimpleDateFormat;
 
 public class Server extends Verticle {
@@ -70,7 +89,7 @@ public class Server extends Verticle {
 				final String key = map.get("key");
 				final String message = map.get("message");
         String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(System.currentTimeMillis());
-        String response = String.format("%s,%s\n%s\n%s\n", TEAM_ID, 
+        String response = String.format("%s,%s\n%s\n%s\n", TEAM_ID,
           AWS_ACCOUNT_ID, timestamp, decipher(message, key));
 
         req.response().putHeader("Content-Type", "text/plain");
@@ -80,21 +99,74 @@ public class Server extends Verticle {
 			}
     });
 
-    router.get("/q2", new Handler<HttpServerRequest>() {
-			@Override
-			public void handle(final HttpServerRequest req) {
-				MultiMap map = req.params();
-				final String userId = map.get("userid");
-				final String tweetTime = map.get("tweet_time");
+    Configuration conf = HBaseConfiguration.create();
+    conf.set("hbase.zookeeper.quorum", "54.86.36.39");
+    conf.setInt("hbase.zookeeper.property.clientPort", 2181);
+    try {
+      final HConnection c = HConnectionManager.createConnection(conf);
 
-        String response = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
+      router.get("/q2", new Handler<HttpServerRequest>() {
+  			@Override
+  			public void handle(final HttpServerRequest req) {
+  				MultiMap map = req.params();
+  				final String userId = map.get("userid");
+  				final String tweetTime = map.get("tweet_time");
+          System.out.println("tweetTime " + tweetTime);
 
-        req.response().putHeader("Content-Type", "text/plain");
-        req.response().putHeader("Content-Length",
-          String.valueOf(response.length()));
-        req.response().end(response);
-			}
-    });
+          //read from hbase
+          try {
+            HTableInterface table = c.getTable(Bytes.toBytes("tweet"));
+            Scan s = new Scan();
+            FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
+            SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
+                Bytes.toBytes("data"),
+                Bytes.toBytes("user_id"),
+                CompareFilter.CompareOp.EQUAL,
+                Bytes.toBytes(userId)
+            );
+            list.addFilter(userFilter);
+            SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
+                Bytes.toBytes("data"),
+                Bytes.toBytes("timestamp"),
+                CompareFilter.CompareOp.EQUAL,
+                Bytes.toBytes(tweetTime)
+            );
+            list.addFilter(timeFilter);
+            s.setFilter(list);
+            s.setCaching(500);
+            ResultScanner scanner = table.getScanner(s);
+            try {
+                // Scanners return Result instances.
+                // Now, for the actual iteration. One way is to use a while loop like so:
+                String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
+                StringBuilder sb = new StringBuilder();
+                sb.append(info);
+                for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+                  // print out the row we found and the columns we were looking for
+                  String tweet = String.format("%s:%s:%s\n", Bytes.toString(rr.getRow()),
+                      Bytes.toString(rr.getValue(Bytes.toBytes("data"),Bytes.toBytes("score"))),
+                      Bytes.toString(rr.getValue(Bytes.toBytes("data"),Bytes.toBytes("text"))));
+                  sb.append(tweet);
+                }
+
+                String response = sb.toString();
+                req.response().putHeader("Content-Type", "text/plain");
+                req.response().putHeader("Content-Length",
+                  String.valueOf(response.length()));
+                req.response().end(response);
+            } finally {
+              // Make sure you close your scanners when you are done!
+              // Thats why we have it inside a try/finally clause
+              scanner.close();
+            }
+          } catch (IOException e) {
+              e.printStackTrace();
+          }
+  			}
+      });
+    } catch (ZooKeeperConnectionException e) {
+        e.printStackTrace();
+    }
 
     router.noMatch(new Handler<HttpServerRequest>() {
       @Override
@@ -108,6 +180,6 @@ public class Server extends Verticle {
       }
     });
     server.requestHandler(router);
-    server.listen(8080);
+    server.listen(80);
   }
 }
