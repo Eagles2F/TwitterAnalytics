@@ -72,6 +72,7 @@ public class Server extends Verticle {
 		server.setAcceptBacklog(32767);
 		server.setUsePooledBuffers(true);
 		server.setReceiveBufferSize(4 * 1024);
+		server.setSendBufferSize(4 * 1024);
 
     router.get("/index.html", new Handler<HttpServerRequest>() {
 			@Override
@@ -180,6 +181,6 @@ public class Server extends Verticle {
       }
     });
     server.requestHandler(router);
-    server.listen(8080);
+    server.listen(80);
   }
 }
