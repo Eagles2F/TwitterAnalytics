@@ -1,207 +1,100 @@
 package io.purrito.big;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.hbase.filter.*;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class HBaseExample {
-    public static int CONNECTION_POOL_SIZE = 10;
-    private HTableInterface tweetTable;
-
-    public HBaseExample(HTablePool pool)
-    {
-            tweetTable = pool.getTable("tweets");
-    }
-
-    public void close()
-    {
-        try
-
-        {
-            tweetTable.close();
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-    }
-
-    public void put( Tweet tweet )
-    {
-        // Create a new Put object with the Row Key as the bytes of the user id
-        Put put = new Put( Bytes.toBytes( tweet.getTweetId() ) );
-
-        // Add the user id to the info column family
-        put.add( Bytes.toBytes( "info" ),
-                 Bytes.toBytes( "userId" ),
-                 Bytes.toBytes( tweet.getUserId() ) );
-        // Add the tweetId to the info column family
-        put.add( Bytes.toBytes( "info" ),
-                 Bytes.toBytes( "tweetId" ),
-                 Bytes.toBytes( tweet.getTweetId() ) );
-        // Add the time to the info column family
-        put.add( Bytes.toBytes( "info" ),
-                 Bytes.toBytes( "time" ),
-                 Bytes.toBytes( tweet.getTime() ) );
-        // Add the text to the info column family
-        put.add( Bytes.toBytes( "info" ),
-                 Bytes.toBytes( "text" ),
-                 Bytes.toBytes( tweet.getText() ) );
-        // Add the score to the info column family
-        put.add( Bytes.toBytes( "info" ),
-                 Bytes.toBytes( "score" ),
-                 Bytes.toBytes( tweet.getScore() ) );
-
-        try {
-            // Add the tweet to the page view table
-            tweetTable.put( put );
-        }
-        catch( IOException e )
-        {
-            e.printStackTrace();
-        }
-    }
-
-    public Tweet get( String rowkey )
-
-    {
-        try
-        {
-            // Create a Get object with the rowkey (as a byte[])
-            Get get = new Get( Bytes.toBytes( rowkey ) );
-
-            // Execute the Get
-            Result result = tweetTable.get( get );
-
-            // Retrieve the results
-            Tweet tweet = new Tweet();
-            byte[] bytes = result.getValue( Bytes.toBytes( "info" ),
-                                            Bytes.toBytes( "userId" ) );
-            tweet.setUserId( Bytes.toString( bytes ) );
-            bytes = result.getValue( Bytes.toBytes( "info" ),
-                                     Bytes.toBytes( "tweetId" ) );
-            tweet.setTweetId(Bytes.toString(bytes));
-            bytes = result.getValue( Bytes.toBytes( "info" ),
-                                     Bytes.toBytes( "text" ) );
-            tweet.setText(Bytes.toString(bytes));
-            bytes = result.getValue( Bytes.toBytes( "info" ),
-                                     Bytes.toBytes( "time" ) );
-            tweet.setTime(Bytes.toString(bytes));
-            bytes = result.getValue( Bytes.toBytes( "info" ),
-                                     Bytes.toBytes( "score" ) );
-            tweet.setScore(Integer.valueOf(Bytes.toString(bytes)));
-
-            // Return the newly constructed tweet
-            return tweet;
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    public void delete( String rowkey )
-    {
-        try
-        {
-            Delete delete = new Delete( Bytes.toBytes( rowkey ) );
-            tweetTable.delete( delete );
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-    }
-
-    public List<Tweet> scan( String startRowKey, String endRowKey )
-    {
-        try
-        {
-            // Build a list to hold our results
-            List<Tweet> tweetResults = new ArrayList<Tweet>();
-
-            // Create and execute a scan
-            Scan scan = new Scan( Bytes.toBytes( startRowKey ), Bytes.toBytes( endRowKey ) );
-            ResultScanner results = tweetTable.getScanner(scan);
-
-            for( Result result : results )
-
-            {
-                // Build a new tweet
-                Tweet tweet = new Tweet();
-                byte[] bytes = result.getValue( Bytes.toBytes( "info" ),
-                                                Bytes.toBytes( "userId" ) );
-                tweet.setUserId( Bytes.toString( bytes ) );
-                bytes = result.getValue( Bytes.toBytes( "info" ),
-                                         Bytes.toBytes( "tweetId" ) );
-                tweet.setTweetId(Bytes.toString(bytes));
-                bytes = result.getValue( Bytes.toBytes( "info" ),
-                                         Bytes.toBytes( "text" ) );
-                tweet.setText(Bytes.toString(bytes));
-                bytes = result.getValue( Bytes.toBytes( "info" ),
-                                         Bytes.toBytes( "time" ) );
-                tweet.setTime(Bytes.toString(bytes));
-                bytes = result.getValue( Bytes.toBytes( "info" ),
-                                         Bytes.toBytes( "score" ) );
-                tweet.setScore(Integer.valueOf(Bytes.toString(bytes)));
-
-                // Add the tweet to our results
-                tweetResults.add( tweet );
-            }
-
-            // Return our results
-            return tweetResults;
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     public static void main( String[] args )
-
     {
         Configuration conf = HBaseConfiguration.create();
-        conf.set("hbase.zookeeper.quorum", "#server’s IP address#");
-        HTablePool pool = new HTablePool(conf, CONNECTION_POOL_SIZE);
-        HBaseExample example = new HBaseExample(pool);
+        conf.set("hbase.zookeeper.quorum", "54.86.36.39");
+        conf.setInt("hbase.zookeeper.property.clientPort", 2181);
+        try {
+        final HConnection c = HConnectionManager.createConnection(conf);
+        Thread t = new Thread(new Runnable(){
+            public void run() {
+              try {
+                  HTableInterface table = c.getTable(Bytes.toBytes("tweet"));
 
-        // Create two records
-        example.put( new Tweet( "User1", "/mypage", "asdfad", "asdfdsa", 13 ) );
-        example.put( new Tweet( "User1", "/mypage", "asdfad", "asdfdsa", 132 ) );
+                  Get g = new Get(Bytes.toBytes("472550295504179200"));
+                  Result r = table.get(g);
+                  byte [] value = r.getValue(Bytes.toBytes("data"),
+                    Bytes.toBytes("score"));
 
-        // Execute a Scan from "U" to "V"
-        List<Tweet> tweets = example.scan( "U", "V" );
-        if( tweets != null ) {
-            System.out.println("Tweets:");
-            for (Tweet tweet : tweets) {
-                System.out.println("\tUser ID: " + tweet.getUserId() + ", TweetID: " + tweet.getTweetId());
+                  // If we convert the value bytes, we should get back 'Some Value', the
+                  // value we inserted at this location.
+                  String valueStr = Bytes.toString(value);
+                  System.out.println("GET: " + valueStr);
+
+                  Scan s = new Scan();
+                  FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
+                  SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
+                      Bytes.toBytes("data"),
+                      Bytes.toBytes("user_id"),
+                      CompareFilter.CompareOp.EQUAL,
+                      Bytes.toBytes("2262456624")
+                  );
+                  list.addFilter(userFilter);
+                  SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
+                      Bytes.toBytes("data"),
+                      Bytes.toBytes("timestamp"),
+                      CompareFilter.CompareOp.EQUAL,
+                      Bytes.toBytes("2014-05-25 09:39:07")
+                  );
+                  list.addFilter(timeFilter);
+                  s.setFilter(list);
+                  s.setCaching(500);
+                  ResultScanner scanner = table.getScanner(s);
+                  try {
+                      // Scanners return Result instances.
+                      // Now, for the actual iteration. One way is to use a while loop like so:
+                      for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+                        // print out the row we found and the columns we were looking for
+                        System.out.println("tweet Id: " + Bytes.toString(rr.getRow()));
+                          System.out.println("Tweet Id: " + Bytes.toString(rr.getValue(Bytes.toBytes("data"),
+                            Bytes.toBytes("text"))));
+                            System.out.println("Score: " + Bytes.toString(rr.getValue(Bytes.toBytes("data"),
+                              Bytes.toBytes("score"))));
+                              System.out.println("Timestamp: " + Bytes.toString(rr.getValue(Bytes.toBytes("data"),
+                                Bytes.toBytes("timestamp"))));
+                                System.out.println("User Id: " + Bytes.toString(rr.getValue(Bytes.toBytes("data"),
+                                  Bytes.toBytes("user_id"))));
+                      }
+
+                      // The other approach is to use a foreach loop. Scanners are iterable!
+                      // for (Result rr : scanner) {
+                      //   System.out.println("Found row: " + rr);
+                      // }
+                  } finally {
+                    // Make sure you close your scanners when you are done!
+                    // Thats why we have it inside a try/finally clause
+                    scanner.close();
+                  }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-        }
-
-        // Get a specific row
-        Tweet tweet1 = example.get( "User1" );
-        System.out.println("\tUser ID: " + tweet1.getUserId() + ", TweetID: " + tweet1.getTweetId());
-
-        // Delete a row
-        example.delete( "User1" );
-
-        // Execute another scan, which should just have User2 in it
-        tweets = example.scan( "U", "V" );
-        if( tweets != null ) {
-            System.out.println("Page Views:");
-            for (Tweet tweet : tweets) {
-                System.out.println("\tUser ID: " + tweet.getUserId() + ", TweetID: " + tweet.getTweetId());
-            }
-        }
-
-        // Close our table
-        example.close();
+        });
+        t.start();
+      } catch (ZooKeeperConnectionException e) {
+          e.printStackTrace();
+      }
     }
 }
