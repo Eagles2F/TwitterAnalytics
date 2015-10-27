@@ -100,7 +100,7 @@ public class Server extends Verticle {
     });
 
     Configuration conf = HBaseConfiguration.create();
-    conf.set("hbase.zookeeper.quorum", "54.86.36.39");
+    conf.set("hbase.zookeeper.quorum", "52.23.239.151");
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
@@ -180,6 +180,6 @@ public class Server extends Verticle {
       }
     });
     server.requestHandler(router);
-    server.listen(80);
+    server.listen(8080);
   }
 }
