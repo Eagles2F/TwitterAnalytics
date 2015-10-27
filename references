@@ -9,3 +9,12 @@ https://dev.twitter.com/overview/api/tweets
 
 mysql add index
 https://dev.mysql.com/doc/refman/5.5/en/innodb-create-index-examples.html
+
+try-with-resources in java
+http://stackoverflow.com/questions/5868369/how-to-read-a-large-text-file-line-by-line-using-java
+
+read text utf-8 encoding in Java
+http://stackoverflow.com/questions/14918188/reading-text-file-with-utf-8-encoding-using-java
+
+mysql utf8mb4
+https://mathiasbynens.be/notes/mysql-utf8mb4

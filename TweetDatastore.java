@@ -15,11 +15,7 @@ public class TweetDatastore {
   private static final int MIN_POOL_SIZE = 3;
   private static final ComboPooledDataSource cpds = new ComboPooledDataSource();
 
-  public TweetDatastore() {
-    init();
-  }
-
-  public void init() {
+  static {
     try {
       cpds.setDriverClass("com.mysql.jdbc.Driver"); // loads the jdbc driver
       cpds.setJdbcUrl(MYSQL_DB_URL+"/"+DATABASE_NAME);
@@ -32,7 +28,7 @@ public class TweetDatastore {
     }
   }
 
-  public Connection getConnection() {
+  public static Connection getConnection() {
     Connection conn = null;
     try {
       conn = cpds.getConnection();
@@ -42,15 +38,14 @@ public class TweetDatastore {
     return conn;
   }
 
-  public ArrayList<String> selectTweets(String userId, String timestamp) {
+  public static ArrayList<String> selectTweets(String userId, String timestamp) {
     ArrayList<String> tweets = new ArrayList<String>();
-    String selectSql = "select tweetId, score, text from " + TABLE_NAME + " where userId=? and time=?";
+    String selectSql = "select tweetId, score, text from " + TABLE_NAME + " where userId=? and time=?;";
     try {
       Connection conn = getConnection();
       PreparedStatement ps = conn.prepareStatement(selectSql);
       ps.setString(1, userId);
       ps.setString(2, timestamp);
-      System.out.println(ps);
       ResultSet rs = ps.executeQuery();
       while (rs.next()) {
         String record = String.format("%s:%d:%s", rs.getString("tweetId"), 
@@ -64,7 +59,25 @@ public class TweetDatastore {
     return tweets;
   }
 
-  public void selectAll() {
+  public static void insertTweet(String tweetId, String userId, String timestamp, 
+      String text, int score) {
+    String insertSql = "insert into " + TABLE_NAME + " (tweetId, userId, time, text, score) VALUES " + 
+      " (?, ?, ?, ?, ?);";
+    try {
+      Connection conn = getConnection();
+      PreparedStatement ps = conn.prepareStatement(insertSql);
+      ps.setString(1, tweetId);
+      ps.setString(2, userId);
+      ps.setString(3, timestamp);
+      ps.setString(4, text);
+      ps.setInt(5, score);
+      ps.executeUpdate();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  public static void selectAll() {
     try {
       Connection conn = getConnection();
       Statement statement = conn.createStatement();
@@ -75,7 +88,7 @@ public class TweetDatastore {
             rs.getString("time"), 
             rs.getString("text"), 
             rs.getInt("score"));
-        System.out.println(record);
+        Utf8Stream.println(record);
       }
     } catch (Exception e) {
       e.printStackTrace();

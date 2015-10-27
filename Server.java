@@ -15,8 +15,6 @@ public class Server extends Verticle {
   private final static String AWS_ACCOUNT_ID = "339035512528";
   private final static String SECRET_KEY = "8271997208960872478735181815578166723519929177896558845922250595511921395049126920528021164569045773";
 
-  private final static TweetDatastore datastore = new TweetDatastore();
-
   public String decipher(String message, String key) {
     BigInteger big1 = new BigInteger(key);
     BigInteger big2 = new BigInteger(SECRET_KEY);
@@ -90,19 +88,23 @@ public class Server extends Verticle {
 				MultiMap map = req.params();
 				final String userId = map.get("userid");
 				final String tweetTime = map.get("tweet_time");
-        // TODO: hack, should be removed once data is correct
-        final String timeInDb = tweetTime.replace(" ", "+");
-        // TODO: unescape the data 
-        ArrayList<String> tweets = datastore.selectTweets(userId, timeInDb);
+        ArrayList<String> tweets = TweetDatastore.selectTweets(userId, tweetTime);
         StringBuilder response = new StringBuilder(String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID));
         for (String tweet : tweets) {
           response.append(tweet+"\n");
         }
-
-        req.response().putHeader("Content-Type", "text/plain");
+        int length = 0;
+        try {
+          // string.length() return the numberofcharacters instead byte length
+          length = response.toString().getBytes("utf-8").length;
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        // specify charset in response
+        req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
         req.response().putHeader("Content-Length",
-          String.valueOf(response.length()));
-        req.response().end(response.toString());
+          String.valueOf(length));
+        req.response().end(response.toString(), "utf-8");
 			}
     });
 
