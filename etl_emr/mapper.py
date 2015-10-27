@@ -328,6 +328,7 @@ class Tweet(object):
 		return score
 
 	def __fix_escape(self):
+		self.text =  self.text.replace('\\',"\\\\")
 		self.text =  self.text.replace('\n','\\n')
 		self.text =  self.text.replace('\a','\\a')
 		self.text =  self.text.replace('\b','\\b')
@@ -335,7 +336,6 @@ class Tweet(object):
 		self.text =  self.text.replace('\r','\\r')
 		self.text =  self.text.replace('\t','\\t')
 		self.text =  self.text.replace('\v','\\v')
-		self.text =  self.text.replace('\\',"\\\\")
 		self.text =  self.text.replace('\'',"\\\'")
 		self.text =  self.text.replace('\"',"\\\"")
 		return self.text
