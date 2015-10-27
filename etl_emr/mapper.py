@@ -239,10 +239,6 @@ AFINITYDIC = dict({"abandon":-2,"abandoned":-2,"abandons":-2,"abducted":-2,"abdu
 		"worshiped":3,"worst":-3,"worth":2,"worthless":-2,"worthy":2,"wow":4,"wowow":4,"wowww":4,"wrathful":-3,"wreck":-2,
 		"wrong":-2,"wronged":-2,"wtf":-4,"yeah":1,"yearning":1,"yeees":2,"yes":1,"youthful":2,"yucky":-2,"yummy":3,"zealot":-2,"zealots":-2,"zealous":2})
 
-erstr1 = ''
-erstr2 = ''
-erraw = ''
-erline = ''
 
 """
 An utility class: Pass used to parse one line of the pagecount file.
@@ -279,7 +275,7 @@ class Tweet(object):
 
 	def get_format_time(self):
 		t_tuple = email.utils.parsedate(self.raw_time)
-		s_time = time.strftime("%Y-%m-%d+%H:%M:%S", t_tuple)
+		s_time = time.strftime("%Y-%m-%d %H:%M:%S", t_tuple)
 		return s_time
 
 	"""
@@ -317,7 +313,7 @@ class Tweet(object):
 			else:
 				end += 1
 
-		self.text = self.__fix_feed_line()
+		self.text = self.__fix_escape()
 
 		return self.text,score
 
@@ -331,8 +327,18 @@ class Tweet(object):
 				score += AFINITYDIC[w]
 		return score
 
-	def __fix_feed_line(self):
-		return self.text.replace('\n','\\n')
+	def __fix_escape(self):
+		self.text =  self.text.replace('\n','\\n')
+		self.text =  self.text.replace('\a','\\a')
+		self.text =  self.text.replace('\b','\\b')
+		self.text =  self.text.replace('\f','\\f')
+		self.text =  self.text.replace('\r','\\r')
+		self.text =  self.text.replace('\t','\\t')
+		self.text =  self.text.replace('\v','\\v')
+		self.text =  self.text.replace('\\',"\\\\")
+		self.text =  self.text.replace('\'',"\\\'")
+		self.text =  self.text.replace('\"',"\\\"")
+		return self.text
 
 	def __isalphanumeric(self, index):
 		sample = self.raw_text[index]
@@ -380,12 +386,12 @@ class Tweet(object):
 	def getResult(self):
 		txt, grade = self.get_filtered_text()
 		fmtime = self.get_format_time()
-		# return "{user_id}\t{id},{time},{text},{score}".format(user_id = self.user_id, id=self.id, time = fmtime, 
-		# 	text = txt.encode('utf_8'), score = grade)
+		return "{id}\t{user_id}\t{time}\t{text}\t{score}".format( id=self.id, user_id = self.user_id, time = fmtime, 
+			text = txt.encode('utf_8'), score = grade)
 		# return "{user_id},{id},{text},{score}".format(user_id = self.user_id, id=self.id, 
 		# 	text = txt.encode('utf_8'), score = grade)
 
-		return self.user_id,self.id,fmtime,txt.encode('utf_8'),grade
+		#return self.user_id,self.id,fmtime,txt.encode('utf_8'),grade
 
 class Ignore(Exception):
 	pass
@@ -395,7 +401,7 @@ if __name__ == '__main__':
 	#filepath=os.environ["mapreduce_map_input_file"]
 
 	#filepath = "jasonsample"
-	csvwriter = csv.writer(sys.stdout)
+	# csvwriter = csv.writer(sys.stdout)
 	for line in sys.stdin:
 		
 		try:
@@ -403,7 +409,8 @@ if __name__ == '__main__':
 			#erline = line
 		
 			res = pass_result.getResult()
-			csvwriter.writerow(res)
+			print res
+			#csvwriter.writerow(res)
 			
 		except Ignore as e:
 			pass
