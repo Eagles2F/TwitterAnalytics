@@ -165,15 +165,15 @@ public class Server extends Verticle {
                 // }
 
                 String response = sb.toString();
-                
+
                 response = response.replace("\\\\","\\");
                 response = response.replace("\\n","\n");
-                response = response.replace("\\a","\a");
+                // response = response.replace("\\a","\a");
                 response = response.replace("\\b","\b");
                 response = response.replace("\\f","\f");
                 response = response.replace("\\r","\r");
                 response = response.replace("\\t","\t");
-                response = response.replace("\\v","\v");
+                // response = response.replace("\\v","\v");
                 response = response.replace("\\\'","\'");
                 response = response.replace("\\\"","\"");
                 int length = 0;
