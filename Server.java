@@ -63,7 +63,7 @@ public class Server extends Verticle {
         int order = intermediate.charAt(i) - 'A';
         if (order < zz) {
             sb2.append(Character.toChars('Z' - (zz - order - 1)));
-        } else {	    
+        } else {
             sb2.append(Character.toChars(intermediate.charAt(i) - zz));
         }
     }
@@ -105,7 +105,7 @@ public class Server extends Verticle {
     });
 
     Configuration conf = HBaseConfiguration.create();
-    conf.set("hbase.zookeeper.quorum", "52.23.239.151");
+    conf.set("hbase.zookeeper.quorum", "52.71.254.31");
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
