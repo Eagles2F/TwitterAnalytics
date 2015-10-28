@@ -34,10 +34,13 @@ public class Server extends Verticle {
 
   public String decipher(String message, String key) {
     BigInteger big1 = new BigInteger(key);
+
     BigInteger big2 = new BigInteger(SECRET_KEY);
+
     BigInteger big3 = big1.divide(big2);
 
-    int y = big3.intValue();
+    long y = big3.longValue();
+
     int n = (int) Math.sqrt((double) message.length());
     StringBuilder sb = new StringBuilder();
     for (int i=0; i<2*n - 1; i++) {
@@ -53,13 +56,14 @@ public class Server extends Verticle {
     }
 
     String intermediate = sb.toString();
-    int zz = y % 25 + 1;
+    int zz =(int) (y % 25 + 1);
+
     StringBuilder sb2 = new StringBuilder();
     for (int i = 0; i < intermediate.length(); i ++) {
         int order = intermediate.charAt(i) - 'A';
         if (order < zz) {
             sb2.append(Character.toChars('Z' - (zz - order - 1)));
-        } else {
+        } else {	    
             sb2.append(Character.toChars(intermediate.charAt(i) - zz));
         }
     }
