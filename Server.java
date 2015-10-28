@@ -109,16 +109,18 @@ public class Server extends Verticle {
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
-      final HTableInterface table = c.getTable(Bytes.toBytes("t"));
+
       router.get("/q2", new Handler<HttpServerRequest>() {
   			@Override
   			public void handle(final HttpServerRequest req) {
   				MultiMap map = req.params();
   				final String userId = map.get("userid");
   				final String tweetTime = map.get("tweet_time");
+          
 				//System.out.println(userId + " " + tweetTime);
           //read from hbase
           try {
+            HTableInterface table = c.getTable(Bytes.toBytes("t"));
             // Scan s = new Scan();
             // s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("ut"));
             // s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("user_id"));
@@ -166,7 +168,7 @@ public class Server extends Verticle {
 
                 String response = sb.toString();
 
-                response = response.replace("\\\\","\\");
+
                 response = response.replace("\\n","\n");
                 // response = response.replace("\\a","\a");
                 response = response.replace("\\b","\b");
@@ -176,6 +178,7 @@ public class Server extends Verticle {
                 // response = response.replace("\\v","\v");
                 response = response.replace("\\\'","\'");
                 response = response.replace("\\\"","\"");
+                response = response.replace("\\\\","\\");
                 int length = 0;
                 try {
                     length = response.getBytes("utf-8").length;
