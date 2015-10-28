@@ -116,7 +116,6 @@ public class Server extends Verticle {
   				MultiMap map = req.params();
   				final String userId = map.get("userid");
   				final String tweetTime = map.get("tweet_time");
-          System.out.println("tweetTime " + tweetTime);
 
           //read from hbase
           try {
@@ -158,7 +157,8 @@ public class Server extends Verticle {
                   // print out the row we found and the columns we were looking for
                   Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
                   Result rr =table.get(g);
-                  String tweet = String.format("%s:%s:%s\n", Bytes.toString(rr.getRow()),
+                  String tweet = String.format("%s:%s:%s\n",
+                      Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("ut")),
                       Bytes.toString(rr.getValue(Bytes.toBytes("b"),Bytes.toBytes("score"))),
                       Bytes.toString(rr.getValue(Bytes.toBytes("b"),Bytes.toBytes("text"))));
                   sb.append(tweet);
@@ -171,6 +171,8 @@ public class Server extends Verticle {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                System.out.println("response " + response);
+
                 req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
                 req.response().putHeader("Content-Length", String.valueOf(length));
                 req.response().end(response, "utf-8");
