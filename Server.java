@@ -109,7 +109,7 @@ public class Server extends Verticle {
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
-
+      final HTableInterface table = c.getTable(Bytes.toBytes("tweet"));
       router.get("/q2", new Handler<HttpServerRequest>() {
   			@Override
   			public void handle(final HttpServerRequest req) {
@@ -120,8 +120,9 @@ public class Server extends Verticle {
 
           //read from hbase
           try {
-            HTableInterface table = c.getTable(Bytes.toBytes("tweet"));
             Scan s = new Scan();
+            scan.addColumn(Bytes.toBytes("data"), Bytes.toBytes("user_id"));
+            scan.addColumn(Bytes.toBytes("data"), Bytes.toBytes("timestamp"));
             FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
             SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
                 Bytes.toBytes("data"),
@@ -138,7 +139,7 @@ public class Server extends Verticle {
             );
             list.addFilter(timeFilter);
             s.setFilter(list);
-            s.setCaching(500);
+            s.setCaching(5000);
             ResultScanner scanner = table.getScanner(s);
             try {
                 // Scanners return Result instances.
@@ -169,6 +170,8 @@ public class Server extends Verticle {
           }
   			}
       });
+    } catch (IOException e) {
+        e.printStackTrace();
     } catch (ZooKeeperConnectionException e) {
         e.printStackTrace();
     }
