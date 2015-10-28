@@ -165,6 +165,9 @@ public class Server extends Verticle {
                 // }
 
                 String response = sb.toString();
+                System.out.println(response);
+                response = response.replace("\\n","\n");
+                System.out.println(response);
                 int length = 0;
                 try {
                     length = response.getBytes("utf-8").length;
