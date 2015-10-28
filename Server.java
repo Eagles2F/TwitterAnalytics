@@ -144,7 +144,7 @@ public class Server extends Verticle {
                 Bytes.toBytes("a"),
                 Bytes.toBytes("ut"),
                 CompareFilter.CompareOp.EQUAL,
-                Bytes.toBytes(user_id+","+tweetTime)
+                Bytes.toBytes(user_id+","+tweetTime));
             s.setFilter();
             s.setCaching(500000);
             ResultScanner scanner = table.getScanner(s);
