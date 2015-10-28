@@ -120,8 +120,8 @@ public class Server extends Verticle {
 
           //read from hbase
           try {
-            Scan s = new Scan();
-            s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("ut"));
+            // Scan s = new Scan();
+            // s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("ut"));
             // s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("user_id"));
             // s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("timestamp"));
             // // FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
@@ -140,27 +140,29 @@ public class Server extends Verticle {
             // );
             // list.addFilter(timeFilter);
             // s.setFilter(list);
-            SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
-                Bytes.toBytes("a"),
-                Bytes.toBytes("ut"),
-                CompareFilter.CompareOp.EQUAL,
-                Bytes.toBytes(userId+","+tweetTime));
-            s.setFilter(timeFilter);
-            s.setCaching(500000);
-            ResultScanner scanner = table.getScanner(s);
-            try {
+            // SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
+            //     Bytes.toBytes("a"),
+            //     Bytes.toBytes("ut"),
+            //     CompareFilter.CompareOp.EQUAL,
+            //     Bytes.toBytes(userId+","+tweetTime));
+            // s.setFilter(timeFilter);
+            // s.setCaching(500000);
+            // ResultScanner scanner = table.getScanner(s);
+            // try {
                 // Scanners return Result instances.
                 // Now, for the actual iteration. One way is to use a while loop like so:
                 String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
                 StringBuilder sb = new StringBuilder();
                 sb.append(info);
-                for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+                // for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
                   // print out the row we found and the columns we were looking for
+                  Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
+                  Result rr =table.get(g);
                   String tweet = String.format("%s:%s:%s\n", Bytes.toString(rr.getRow()),
                       Bytes.toString(rr.getValue(Bytes.toBytes("b"),Bytes.toBytes("score"))),
                       Bytes.toString(rr.getValue(Bytes.toBytes("b"),Bytes.toBytes("text"))));
                   sb.append(tweet);
-                }
+                // }
 
                 String response = sb.toString();
                 int length = 0;
@@ -172,11 +174,11 @@ public class Server extends Verticle {
                 req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
                 req.response().putHeader("Content-Length", String.valueOf(length));
                 req.response().end(response, "utf-8");
-            } finally {
-              // Make sure you close your scanners when you are done!
-              // Thats why we have it inside a try/finally clause
-              scanner.close();
-            }
+            // } finally {
+            //   // Make sure you close your scanners when you are done!
+            //   // Thats why we have it inside a try/finally clause
+            //   scanner.close();
+            // }
           } catch (IOException e) {
               e.printStackTrace();
           }
