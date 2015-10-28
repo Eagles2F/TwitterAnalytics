@@ -29,7 +29,7 @@ import java.text.SimpleDateFormat;
 
 public class Server extends Verticle {
   private final static String TEAM_ID = "purrito";
-  private final static String AWS_ACCOUNT_ID = "339035512528";
+  private final static String AWS_ACCOUNT_ID = "3390-3551-2528";
   private final static String SECRET_KEY = "8271997208960872478735181815578166723519929177896558845922250595511921395049126920528021164569045773";
 
   public String decipher(String message, String key) {
@@ -116,7 +116,7 @@ public class Server extends Verticle {
   				MultiMap map = req.params();
   				final String userId = map.get("userid");
   				final String tweetTime = map.get("tweet_time");
-
+				//System.out.println(userId + " " + tweetTime);
           //read from hbase
           try {
             // Scan s = new Scan();
@@ -174,7 +174,7 @@ public class Server extends Verticle {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                System.out.println("response " + response);
+                //System.out.println(response);
 
                 req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
                 req.response().putHeader("Content-Length", String.valueOf(length));
