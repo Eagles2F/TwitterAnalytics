@@ -16,8 +16,8 @@ public class TweetImporter {
         String[] fields = line.split("\\t");
         // tweetId, userId, time, text, score
         TweetDatastore.insertTweet(fields[0], fields[1], 
-            fields[2], fields[3], 
-            Integer.valueOf(fields[4]));
+            fields[2], 
+            Integer.valueOf(fields[3]));
       }
     } catch (IOException e) {
       e.printStackTrace();

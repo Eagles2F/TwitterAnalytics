@@ -18,3 +18,22 @@ http://stackoverflow.com/questions/14918188/reading-text-file-with-utf-8-encodin
 
 mysql utf8mb4
 https://mathiasbynens.be/notes/mysql-utf8mb4
+
+install mysql in linux
+http://forums.mysql.com/read.php?11,153632
+
+run mysql on boot
+http://serverfault.com/questions/232046/how-to-automatically-start-mysql-after-server-restart-centos-other-distros
+
+vertx manual - performance tune
+http://vertx.io/vertx2/manual.html
+
+command not found when using sudo
+http://superuser.com/questions/709515/command-not-found-when-using-sudo
+
+chkconfig add script
+http://stackoverflow.com/questions/12973777/how-to-run-a-shell-script-at-startup
+
+load bulk data into mysql optimization
+https://dev.mysql.com/doc/refman/5.5/en/optimizing-myisam-bulk-data-loading.html
+

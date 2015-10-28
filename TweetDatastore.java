@@ -40,12 +40,11 @@ public class TweetDatastore {
 
   public static ArrayList<String> selectTweets(String userId, String timestamp) {
     ArrayList<String> tweets = new ArrayList<String>();
-    String selectSql = "select tweetId, score, text from " + TABLE_NAME + " where userId=? and time=?;";
+    String selectSql = "select tweetId, score, text from " + TABLE_NAME + " where idtime=?;";
     try {
       Connection conn = getConnection();
       PreparedStatement ps = conn.prepareStatement(selectSql);
-      ps.setString(1, userId);
-      ps.setString(2, timestamp);
+      ps.setString(1, userId+","+timestamp);
       ResultSet rs = ps.executeQuery();
       while (rs.next()) {
         String record = String.format("%s:%d:%s", rs.getString("tweetId"), 
@@ -59,18 +58,17 @@ public class TweetDatastore {
     return tweets;
   }
 
-  public static void insertTweet(String tweetId, String userId, String timestamp, 
+  public static void insertTweet(String tweetId, String idtime, 
       String text, int score) {
-    String insertSql = "insert into " + TABLE_NAME + " (tweetId, userId, time, text, score) VALUES " + 
-      " (?, ?, ?, ?, ?);";
+    String insertSql = "insert into " + TABLE_NAME + " (tweetId, idtime, text, score) VALUES " + 
+      " (?, ?, ?, ?);";
     try {
       Connection conn = getConnection();
       PreparedStatement ps = conn.prepareStatement(insertSql);
       ps.setString(1, tweetId);
-      ps.setString(2, userId);
-      ps.setString(3, timestamp);
-      ps.setString(4, text);
-      ps.setInt(5, score);
+      ps.setString(2, idtime);
+      ps.setString(3, text);
+      ps.setInt(4, score);
       ps.executeUpdate();
     } catch (Exception e) {
       e.printStackTrace();
@@ -83,9 +81,8 @@ public class TweetDatastore {
       Statement statement = conn.createStatement();
       ResultSet rs = statement.executeQuery("SELECT * FROM " + TABLE_NAME);
       while (rs.next()) {
-        String record = String.format("%s, %s, %s, %s, %d", rs.getString("tweetId"), 
-            rs.getString("userId"), 
-            rs.getString("time"), 
+        String record = String.format("%s, %s, %s, %d", rs.getString("tweetId"), 
+            rs.getString("idtime"), 
             rs.getString("text"), 
             rs.getInt("score"));
         Utf8Stream.println(record);
