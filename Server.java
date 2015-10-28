@@ -172,8 +172,6 @@ public class Server extends Verticle {
       });
     } catch (IOException e) {
         e.printStackTrace();
-    } catch (ZooKeeperConnectionException e) {
-        e.printStackTrace();
     }
 
     router.noMatch(new Handler<HttpServerRequest>() {
