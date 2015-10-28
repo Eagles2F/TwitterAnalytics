@@ -121,8 +121,8 @@ public class Server extends Verticle {
           //read from hbase
           try {
             Scan s = new Scan();
-            scan.addColumn(Bytes.toBytes("data"), Bytes.toBytes("user_id"));
-            scan.addColumn(Bytes.toBytes("data"), Bytes.toBytes("timestamp"));
+            s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("user_id"));
+            s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("timestamp"));
             FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
             SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
                 Bytes.toBytes("data"),
