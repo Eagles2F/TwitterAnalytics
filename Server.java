@@ -109,7 +109,7 @@ public class Server extends Verticle {
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
-      final HTableInterface table = c.getTable(Bytes.toBytes("tweetnew"));
+      final HTableInterface table = c.getTable(Bytes.toBytes("t"));
       router.get("/q2", new Handler<HttpServerRequest>() {
   			@Override
   			public void handle(final HttpServerRequest req) {
