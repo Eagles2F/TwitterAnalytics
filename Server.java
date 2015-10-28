@@ -139,7 +139,7 @@ public class Server extends Verticle {
             );
             list.addFilter(timeFilter);
             s.setFilter(list);
-            s.setCaching(5000);
+            s.setCaching(500000);
             ResultScanner scanner = table.getScanner(s);
             try {
                 // Scanners return Result instances.
@@ -156,10 +156,15 @@ public class Server extends Verticle {
                 }
 
                 String response = sb.toString();
-                req.response().putHeader("Content-Type", "text/plain");
-                req.response().putHeader("Content-Length",
-                  String.valueOf(response.length()));
-                req.response().end(response);
+                int length = 0;
+                try {
+                    length = response.getBytes("utf-8").length;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
+                req.response().putHeader("Content-Length", String.valueOf(length));
+                req.response().end(response, "utf-8");
             } finally {
               // Make sure you close your scanners when you are done!
               // Thats why we have it inside a try/finally clause
