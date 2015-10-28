@@ -158,7 +158,7 @@ public class Server extends Verticle {
                   Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
                   Result rr =table.get(g);
                   String tweet = String.format("%s:%s:%s\n",
-                      Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("ut")),
+                      Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("ut"))),
                       Bytes.toString(rr.getValue(Bytes.toBytes("b"),Bytes.toBytes("score"))),
                       Bytes.toString(rr.getValue(Bytes.toBytes("b"),Bytes.toBytes("text"))));
                   sb.append(tweet);
