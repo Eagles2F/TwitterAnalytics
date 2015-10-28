@@ -109,7 +109,7 @@ public class Server extends Verticle {
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
-      final HTableInterface table = c.getTable(Bytes.toBytes("tweet"));
+      final HTableInterface table = c.getTable(Bytes.toBytes("tweetnew"));
       router.get("/q2", new Handler<HttpServerRequest>() {
   			@Override
   			public void handle(final HttpServerRequest req) {
@@ -121,24 +121,31 @@ public class Server extends Verticle {
           //read from hbase
           try {
             Scan s = new Scan();
-            s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("user_id"));
-            s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("timestamp"));
-            FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
-            SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
-                Bytes.toBytes("data"),
-                Bytes.toBytes("user_id"),
-                CompareFilter.CompareOp.EQUAL,
-                Bytes.toBytes(userId)
-            );
-            list.addFilter(userFilter);
+            s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("ut"));
+            // s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("user_id"));
+            // s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("timestamp"));
+            // // FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
+            // SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
+            //     Bytes.toBytes("data"),
+            //     Bytes.toBytes("user_id"),
+            //     CompareFilter.CompareOp.EQUAL,
+            //     Bytes.toBytes(userId)
+            // );
+            // list.addFilter(userFilter);
+            // SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
+            //     Bytes.toBytes("data"),
+            //     Bytes.toBytes("timestamp"),
+            //     CompareFilter.CompareOp.EQUAL,
+            //     Bytes.toBytes(tweetTime)
+            // );
+            // list.addFilter(timeFilter);
+            // s.setFilter(list);
             SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
-                Bytes.toBytes("data"),
-                Bytes.toBytes("timestamp"),
+                Bytes.toBytes("a"),
+                Bytes.toBytes("ut"),
                 CompareFilter.CompareOp.EQUAL,
-                Bytes.toBytes(tweetTime)
-            );
-            list.addFilter(timeFilter);
-            s.setFilter(list);
+                Bytes.toBytes(user_id+","+tweetTime)
+            s.setFilter();
             s.setCaching(500000);
             ResultScanner scanner = table.getScanner(s);
             try {
@@ -150,8 +157,8 @@ public class Server extends Verticle {
                 for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
                   // print out the row we found and the columns we were looking for
                   String tweet = String.format("%s:%s:%s\n", Bytes.toString(rr.getRow()),
-                      Bytes.toString(rr.getValue(Bytes.toBytes("data"),Bytes.toBytes("score"))),
-                      Bytes.toString(rr.getValue(Bytes.toBytes("data"),Bytes.toBytes("text"))));
+                      Bytes.toString(rr.getValue(Bytes.toBytes("b"),Bytes.toBytes("score"))),
+                      Bytes.toString(rr.getValue(Bytes.toBytes("b"),Bytes.toBytes("text"))));
                   sb.append(tweet);
                 }
 
