@@ -37,3 +37,6 @@ http://stackoverflow.com/questions/12973777/how-to-run-a-shell-script-at-startup
 load bulk data into mysql optimization
 https://dev.mysql.com/doc/refman/5.5/en/optimizing-myisam-bulk-data-loading.html
 
+install java
+http://stackoverflow.com/questions/5407703/javac-command-not-found
+yum install java-devel

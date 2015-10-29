@@ -4,5 +4,5 @@ create table tweets(
   text CHAR(145) NOT NULL DEFAULT '', 
   score int NOT NULL) ENGINE=MyISAM DEFAULT CHARACTER SET=utf8mb4;
 
-alter table tweets add index (userId), add index (time);
+alter table tweets add index (idtime);
 

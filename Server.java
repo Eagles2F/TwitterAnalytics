@@ -49,6 +49,21 @@ public class Server extends Verticle {
     return sb2.toString();
   }
 
+  public String unescape(String text) {
+    if (text == null) {
+      return null;
+    }
+    text = text.replace("\\n", "\n");
+    text = text.replace("\\r", "\r");
+    text = text.replace("\\t", "\t");
+    text = text.replace("\\f", "\f");
+    text = text.replace("\\b", "\b");
+    text = text.replace("\\\'", "\'");
+    text = text.replace("\\\"", "\"");
+    text = text.replace("\\\\", "\\");
+    return text;
+  }
+
   public void start() {
     final RouteMatcher router = new RouteMatcher();
     final HttpServer server = vertx.createHttpServer();
@@ -91,6 +106,7 @@ public class Server extends Verticle {
         ArrayList<String> tweets = TweetDatastore.selectTweets(userId, tweetTime);
         StringBuilder response = new StringBuilder(String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID));
         for (String tweet : tweets) {
+          tweet = unescape(tweet);
           response.append(tweet+"\n");
         }
         int length = 0;
@@ -101,6 +117,7 @@ public class Server extends Verticle {
           e.printStackTrace();
         }
         // specify charset in response
+        req.response().putHeader("Connection", "close");
         req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
         req.response().putHeader("Content-Length",
           String.valueOf(length));
@@ -120,6 +137,6 @@ public class Server extends Verticle {
       }
     });
     server.requestHandler(router);
-    server.listen(8080);
+    server.listen(80);
   }
 }
