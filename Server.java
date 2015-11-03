@@ -142,7 +142,7 @@ public class Server extends Verticle {
                     Bytes.toBytes(tweetTime)
                 );
                 list.addFilter(timeFilter);
-                list.addFilter(new PageFilter(5));
+                list.addFilter(new PageFilter(1));
                 s.setFilter(list);
                 // SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
                 //     Bytes.toBytes("a"),
@@ -150,7 +150,7 @@ public class Server extends Verticle {
                 //     CompareFilter.CompareOp.EQUAL,
                 //     Bytes.toBytes(userId+","+tweetTime));
                 // s.setFilter(timeFilter);
-                s.setCaching(5000);
+                s.setCaching(500);
                 ResultScanner scanner = table.getScanner(s);
                 try {
                     // Scanners return Result instances.
