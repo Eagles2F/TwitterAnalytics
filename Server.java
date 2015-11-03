@@ -120,13 +120,13 @@ public class Server extends Verticle {
           // //read from hbase
           Scan s = new Scan();
           FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
-          SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
-              Bytes.toBytes("a"),
-              Bytes.toBytes("uid"),
-              CompareFilter.CompareOp.EQUAL,
-              Bytes.toBytes(userId)
-          );
-          list.addFilter(userFilter);
+          // SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
+          //     Bytes.toBytes("a"),
+          //     Bytes.toBytes("uid"),
+          //     CompareFilter.CompareOp.EQUAL,
+          //     Bytes.toBytes(userId)
+          // );
+          // list.addFilter(userFilter);
           // SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
           //     Bytes.toBytes("a"),
           //     Bytes.toBytes("date"),
