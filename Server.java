@@ -116,88 +116,85 @@ public class Server extends Verticle {
   				MultiMap map = req.params();
   				final String userId = map.get("userid");
   				final String tweetTime = map.get("tweet_time");
-
 				  System.out.println(userId + " " + tweetTime);
           // //read from hbase
+          Scan s = new Scan();
+          s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("uid"));
+          s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("date"));
+          s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("text"));
+          s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("score"));
+          FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
+          SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
+              Bytes.toBytes("a"),
+              Bytes.toBytes("uid"),
+              CompareFilter.CompareOp.EQUAL,
+              Bytes.toBytes(userId)
+          );
+          list.addFilter(userFilter);
+          SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
+              Bytes.toBytes("a"),
+              Bytes.toBytes("date"),
+              CompareFilter.CompareOp.EQUAL,
+              Bytes.toBytes(tweetTime)
+          );
+          list.addFilter(timeFilter);
+          list.addFilter(new PageFilter(1));
+          s.setFilter(list);
+          // SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
+          //     Bytes.toBytes("a"),
+          //     Bytes.toBytes("ut"),
+          //     CompareFilter.CompareOp.EQUAL,
+          //     Bytes.toBytes(userId+","+tweetTime));
+          // s.setFilter(timeFilter);
+          s.setCaching(500);
+          ResultScanner scanner = table.getScanner(s);
           try {
-                Scan s = new Scan();
-                s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("uid"));
-                s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("date"));
-                s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("text"));
-                s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("score"));
-                FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
-                SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
-                    Bytes.toBytes("a"),
-                    Bytes.toBytes("uid"),
-                    CompareFilter.CompareOp.EQUAL,
-                    Bytes.toBytes(userId)
-                );
-                list.addFilter(userFilter);
-                SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
-                    Bytes.toBytes("a"),
-                    Bytes.toBytes("date"),
-                    CompareFilter.CompareOp.EQUAL,
-                    Bytes.toBytes(tweetTime)
-                );
-                list.addFilter(timeFilter);
-                list.addFilter(new PageFilter(1));
-                s.setFilter(list);
-                // SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
-                //     Bytes.toBytes("a"),
-                //     Bytes.toBytes("ut"),
-                //     CompareFilter.CompareOp.EQUAL,
-                //     Bytes.toBytes(userId+","+tweetTime));
-                // s.setFilter(timeFilter);
-                s.setCaching(500);
-                ResultScanner scanner = table.getScanner(s);
-                try {
-                    // Scanners return Result instances.
-                    // Now, for the actual iteration. One way is to use a while loop like so:
-                    String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(info);
-                    for (Result rr : scanner) {
-                      // print out the row we found and the columns we were looking for
-                      // Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
-                      // Result rr =table.get(g);
-                      String tweet = String.format("%s:%s:%s\n",
-                          Bytes.toString(rr.getRow()),
-                          Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
-                          Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
-                      sb.append(tweet);
-                      System.out.println(tweet);
-                    }
+              // Scanners return Result instances.
+              // Now, for the actual iteration. One way is to use a while loop like so:
+              String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
+              StringBuilder sb = new StringBuilder();
+              sb.append(info);
+              for (Result rr : scanner) {
+                // print out the row we found and the columns we were looking for
+                // Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
+                // Result rr =table.get(g);
+                String tweet = String.format("%s:%s:%s\n",
+                    Bytes.toString(rr.getRow()),
+                    Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
+                    Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
+                sb.append(tweet);
+                System.out.println(tweet);
+              }
 
-                    String response = sb.toString();
+              String response = sb.toString();
 
-                    response = response.replace("\\n","\n");
-                    // response = response.replace("\\a","\a");
-                    response = response.replace("\\b","\b");
-                    response = response.replace("\\f","\f");
-                    response = response.replace("\\r","\r");
-                    response = response.replace("\\t","\t");
-                    // response = response.replace("\\v","\v");
-                    response = response.replace("\\\'","\'");
-                    response = response.replace("\\\"","\"");
-                    response = response.replace("\\\\","\\");
-                    int length = 0;
-                    try {
-                        length = response.getBytes("utf-8").length;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    //System.out.println(response);
+              response = response.replace("\\n","\n");
+              // response = response.replace("\\a","\a");
+              response = response.replace("\\b","\b");
+              response = response.replace("\\f","\f");
+              response = response.replace("\\r","\r");
+              response = response.replace("\\t","\t");
+              // response = response.replace("\\v","\v");
+              response = response.replace("\\\'","\'");
+              response = response.replace("\\\"","\"");
+              response = response.replace("\\\\","\\");
+              int length = 0;
+              try {
+                  length = response.getBytes("utf-8").length;
+              } catch (Exception e) {
+                  e.printStackTrace();
+              }
+              //System.out.println(response);
 
-                    req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
-                    req.response().putHeader("Content-Length", String.valueOf(length));
-                    req.response().end(response, "utf-8");
-                } finally {
-                  // Make sure you close your scanners when you are done!
-                  // Thats why we have it inside a try/finally clause
-                  scanner.close();
-                }
-            }
-         }
+              req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
+              req.response().putHeader("Content-Length", String.valueOf(length));
+              req.response().end(response, "utf-8");
+          } finally {
+            // Make sure you close your scanners when you are done!
+            // Thats why we have it inside a try/finally clause
+            scanner.close();
+          }
+        }
       });
     } catch (IOException e) {
         e.printStackTrace();
