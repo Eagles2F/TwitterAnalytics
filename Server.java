@@ -119,10 +119,6 @@ public class Server extends Verticle {
 				  System.out.println(userId + " " + tweetTime);
           // //read from hbase
           Scan s = new Scan();
-          s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("uid"));
-          s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("date"));
-          s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("text"));
-          s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("score"));
           FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
           SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
               Bytes.toBytes("a"),
@@ -131,13 +127,13 @@ public class Server extends Verticle {
               Bytes.toBytes(userId)
           );
           list.addFilter(userFilter);
-          SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
-              Bytes.toBytes("a"),
-              Bytes.toBytes("date"),
-              CompareFilter.CompareOp.EQUAL,
-              Bytes.toBytes(tweetTime)
-          );
-          list.addFilter(timeFilter);
+          // SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
+          //     Bytes.toBytes("a"),
+          //     Bytes.toBytes("date"),
+          //     CompareFilter.CompareOp.EQUAL,
+          //     Bytes.toBytes(tweetTime)
+          // );
+          // list.addFilter(timeFilter);
           list.addFilter(new PageFilter(1));
           s.setFilter(list);
           // SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
