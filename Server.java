@@ -119,9 +119,7 @@ public class Server extends Verticle {
 
 				  System.out.println(userId + " " + tweetTime);
           // //read from hbase
-          // new Thread(new Runnable(){
-          //   public void run() {
-              try {
+          try {
                 Scan s = new Scan();
                 s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("uid"));
                 s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("date"));
@@ -198,13 +196,8 @@ public class Server extends Verticle {
                   // Thats why we have it inside a try/finally clause
                   scanner.close();
                 }
-              } catch (IOException e) {
-                  e.printStackTrace();
-              }
             }
-          // }).start();
-
-  			}
+         }
       });
     } catch (IOException e) {
         e.printStackTrace();
