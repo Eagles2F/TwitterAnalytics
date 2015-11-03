@@ -117,7 +117,7 @@ public class Server extends Verticle {
   				final String userId = map.get("userid");
   				final String tweetTime = map.get("tweet_time");
 
-				//System.out.println(userId + " " + tweetTime);
+				  System.out.println(userId + " " + tweetTime);
           //read from hbase
           new Thread(new Runnable(){
             public void run() {
@@ -158,7 +158,7 @@ public class Server extends Verticle {
                     String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
                     StringBuilder sb = new StringBuilder();
                     sb.append(info);
-                    for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+                    for (Result rr : scanner) {
                       // print out the row we found and the columns we were looking for
                       // Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
                       // Result rr =table.get(g);
