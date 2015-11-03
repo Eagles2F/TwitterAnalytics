@@ -105,11 +105,11 @@ public class Server extends Verticle {
     });
 
     Configuration conf = HBaseConfiguration.create();
-    conf.set("hbase.zookeeper.quorum", "52.71.254.31");
+    conf.set("hbase.zookeeper.quorum", "54.88.195.251");
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
-      final HTableInterface table = c.getTable(Bytes.toBytes("t"));
+      final HTableInterface table = c.getTable(Bytes.toBytes("tweet"));
       router.get("/q2", new Handler<HttpServerRequest>() {
   			@Override
   			public void handle(final HttpServerRequest req) {
@@ -122,50 +122,52 @@ public class Server extends Verticle {
           new Thread(new Runnable(){
             public void run() {
               try {
-                // Scan s = new Scan();
-                // s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("ut"));
-                // s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("user_id"));
-                // s.addColumn(Bytes.toBytes("data"), Bytes.toBytes("timestamp"));
-                // // FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
-                // SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
-                //     Bytes.toBytes("data"),
-                //     Bytes.toBytes("user_id"),
-                //     CompareFilter.CompareOp.EQUAL,
-                //     Bytes.toBytes(userId)
-                // );
-                // list.addFilter(userFilter);
-                // SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
-                //     Bytes.toBytes("data"),
-                //     Bytes.toBytes("timestamp"),
-                //     CompareFilter.CompareOp.EQUAL,
-                //     Bytes.toBytes(tweetTime)
-                // );
-                // list.addFilter(timeFilter);
-                // s.setFilter(list);
+                Scan s = new Scan();
+                s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("uid"));
+                s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("date"));
+                s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("text"));
+                s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("score"));
+                FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL);
+                SingleColumnValueFilter userFilter = new SingleColumnValueFilter(
+                    Bytes.toBytes("a"),
+                    Bytes.toBytes("uid"),
+                    CompareFilter.CompareOp.EQUAL,
+                    Bytes.toBytes(userId)
+                );
+                list.addFilter(userFilter);
+                SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
+                    Bytes.toBytes("a"),
+                    Bytes.toBytes("date"),
+                    CompareFilter.CompareOp.EQUAL,
+                    Bytes.toBytes(tweetTime)
+                );
+                list.addFilter(timeFilter);
+                list.addFilter(new PageFilter(5));
+                s.setFilter(list);
                 // SingleColumnValueFilter timeFilter = new SingleColumnValueFilter(
                 //     Bytes.toBytes("a"),
                 //     Bytes.toBytes("ut"),
                 //     CompareFilter.CompareOp.EQUAL,
                 //     Bytes.toBytes(userId+","+tweetTime));
                 // s.setFilter(timeFilter);
-                // s.setCaching(500000);
-                // ResultScanner scanner = table.getScanner(s);
-                // try {
+                s.setCaching(5000);
+                ResultScanner scanner = table.getScanner(s);
+                try {
                     // Scanners return Result instances.
                     // Now, for the actual iteration. One way is to use a while loop like so:
                     String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
                     StringBuilder sb = new StringBuilder();
                     sb.append(info);
-                    // for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+                    for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
                       // print out the row we found and the columns we were looking for
-                      Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
-                      Result rr =table.get(g);
+                      // Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
+                      // Result rr =table.get(g);
                       String tweet = String.format("%s:%s:%s\n",
-                          Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("ut"))),
-                          Bytes.toString(rr.getValue(Bytes.toBytes("b"),Bytes.toBytes("score"))),
-                          Bytes.toString(rr.getValue(Bytes.toBytes("b"),Bytes.toBytes("text"))));
+                          Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toString(rr.getRow()))),
+                          Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
+                          Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
                       sb.append(tweet);
-                    // }
+                    }
 
                     String response = sb.toString();
 
@@ -190,11 +192,11 @@ public class Server extends Verticle {
                     req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
                     req.response().putHeader("Content-Length", String.valueOf(length));
                     req.response().end(response, "utf-8");
-                // } finally {
-                //   // Make sure you close your scanners when you are done!
-                //   // Thats why we have it inside a try/finally clause
-                //   scanner.close();
-                // }
+                } finally {
+                  // Make sure you close your scanners when you are done!
+                  // Thats why we have it inside a try/finally clause
+                  scanner.close();
+                }
               } catch (IOException e) {
                   e.printStackTrace();
               }
