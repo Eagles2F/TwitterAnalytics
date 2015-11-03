@@ -118,9 +118,9 @@ public class Server extends Verticle {
   				final String tweetTime = map.get("tweet_time");
 
 				  System.out.println(userId + " " + tweetTime);
-          //read from hbase
-          new Thread(new Runnable(){
-            public void run() {
+          // //read from hbase
+          // new Thread(new Runnable(){
+          //   public void run() {
               try {
                 Scan s = new Scan();
                 s.addColumn(Bytes.toBytes("a"), Bytes.toBytes("uid"));
@@ -167,6 +167,7 @@ public class Server extends Verticle {
                           Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
                           Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
                       sb.append(tweet);
+                      System.out.println(tweet);
                     }
 
                     String response = sb.toString();
@@ -201,7 +202,7 @@ public class Server extends Verticle {
                   e.printStackTrace();
               }
             }
-          }).start();
+          // }).start();
 
   			}
       });
