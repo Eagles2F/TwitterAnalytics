@@ -147,6 +147,7 @@ public class Server extends Verticle {
           //     Bytes.toBytes(userId+","+tweetTime));
           // s.setFilter(timeFilter);
           s.setCaching(500);
+          try {
           ResultScanner scanner = table.getScanner(s);
           try {
               // Scanners return Result instances.
@@ -193,6 +194,9 @@ public class Server extends Verticle {
             // Make sure you close your scanners when you are done!
             // Thats why we have it inside a try/finally clause
             scanner.close();
+          }
+          } catch (IOException e) {
+              e.printStackTrace();
           }
         }
       });
