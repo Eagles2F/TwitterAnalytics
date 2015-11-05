@@ -123,30 +123,34 @@ public class Server extends Verticle {
           StringBuilder sb = new StringBuilder();
           sb.append(info);
           Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
-          Result rr =table.get(g);
-          String tweet = String.format("%s:%s:%s\n",
-              Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("id"))),
-              Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
-              Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
-          sb.append(tweet);
-          // System.out.println(tweet);
-          response = sb.toString();
-
-          response = response.replace("\\n","\n");
-          // response = response.replace("\\a","\a");
-          response = response.replace("\\b","\b");
-          response = response.replace("\\f","\f");
-          response = response.replace("\\r","\r");
-          response = response.replace("\\t","\t");
-          // response = response.replace("\\v","\v");
-          response = response.replace("\\\'","\'");
-          response = response.replace("\\\"","\"");
-          response = response.replace("\\\\","\\");
-          int length = 0;
           try {
-              length = response.getBytes("utf-8").length;
-          } catch (Exception e) {
-              e.printStackTrace();
+            Result rr =table.get(g);
+            String tweet = String.format("%s:%s:%s\n",
+                Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("id"))),
+                Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
+                Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
+            sb.append(tweet);
+            // System.out.println(tweet);
+            response = sb.toString();
+
+            response = response.replace("\\n","\n");
+            // response = response.replace("\\a","\a");
+            response = response.replace("\\b","\b");
+            response = response.replace("\\f","\f");
+            response = response.replace("\\r","\r");
+            response = response.replace("\\t","\t");
+            // response = response.replace("\\v","\v");
+            response = response.replace("\\\'","\'");
+            response = response.replace("\\\"","\"");
+            response = response.replace("\\\\","\\");
+            int length = 0;
+            try {
+                length = response.getBytes("utf-8").length;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+          } catch (IOException e) {
+                e.printStackTrace();
           }
           //System.out.println(response);
 
