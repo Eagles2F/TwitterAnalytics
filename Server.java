@@ -105,7 +105,7 @@ public class Server extends Verticle {
     });
 
     Configuration conf = HBaseConfiguration.create();
-    conf.set("hbase.zookeeper.quorum", "54.88.195.251");
+    conf.set("hbase.zookeeper.quorum", "54.172.68.251");
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
@@ -144,8 +144,8 @@ public class Server extends Verticle {
           // s.setFilter(timeFilter);
           s.setCaching(500);
           try {
-          ResultScanner scanner = table.getScanner(s);
-          try {
+            ResultScanner scanner = table.getScanner(s);
+            try {
               // Scanners return Result instances.
               // Now, for the actual iteration. One way is to use a while loop like so:
               String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
@@ -186,11 +186,11 @@ public class Server extends Verticle {
               req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
               req.response().putHeader("Content-Length", String.valueOf(length));
               req.response().end(response, "utf-8");
-          } finally {
-            // Make sure you close your scanners when you are done!
-            // Thats why we have it inside a try/finally clause
-            scanner.close();
-          }
+            } finally {
+              // Make sure you close your scanners when you are done!
+              // Thats why we have it inside a try/finally clause
+              scanner.close();
+            }
           } catch (IOException e) {
               e.printStackTrace();
           }
