@@ -124,13 +124,16 @@ public class Server extends Verticle {
           sb.append(info);
           Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
           try {
+            final long start_time = System.currentTimeMillis();
             Result rr =table.get(g);
             String tweet = String.format("%s:%s:%s\n",
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("id"))),
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
             sb.append(tweet);
-            // System.out.println(tweet);
+            final long end_time = System.currentTimeMillis();
+            System.out.println("mills taken for backend:" + (end_time - start_time));
+
             response = sb.toString();
 
             response = response.replace("\\n","\n");
