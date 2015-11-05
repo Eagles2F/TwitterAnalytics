@@ -32,7 +32,6 @@ public class Server extends Verticle {
   private final static String AWS_ACCOUNT_ID = "3390-3551-2528";
   private final static String SECRET_KEY = "8271997208960872478735181815578166723519929177896558845922250595511921395049126920528021164569045773";
 
-  private final HashMap cache = new HashMap<String, String>();
   public String decipher(String message, String key) {
     BigInteger big1 = new BigInteger(key);
 
@@ -106,9 +105,8 @@ public class Server extends Verticle {
     });
 
     Configuration conf = HBaseConfiguration.create();
-    conf.set("hbase.zookeeper.quorum", "54.172.68.251");
+    conf.set("hbase.zookeeper.quorum", "52.91.198.252");
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
-    conf.set("hbase.rpc.timeout", "10000");
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
       final HTableInterface table = c.getTable(Bytes.toBytes("tweet"));
@@ -118,25 +116,22 @@ public class Server extends Verticle {
   				MultiMap map = req.params();
   				final String userId = map.get("userid");
   				final String tweetTime = map.get("tweet_time");
-				  System.out.println(userId + " " + tweetTime);
+				  // System.out.println(userId + " " + tweetTime);
           String response;
-          if (!cache.containsKey(userId+","+tweetTime)) {
-              String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
-              StringBuilder sb = new StringBuilder();
-              sb.append(info);
-              Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
-              Result rr =table.get(g);
-              String tweet = String.format("%s:%s:%s\n",
-                  Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("id"))),
-                  Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
-                  Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
-              sb.append(tweet);
-              System.out.println(tweet);
-              cache.put(userId+","+tweetTime, sb.toString());
-              response = sb.toString();
-          } else {
-              response = cache.get(userId);
-          }
+
+          String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
+          StringBuilder sb = new StringBuilder();
+          sb.append(info);
+          Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
+          Result rr =table.get(g);
+          String tweet = String.format("%s:%s:%s\n",
+              Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("id"))),
+              Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
+              Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
+          sb.append(tweet);
+          // System.out.println(tweet);
+          cache.put(userId+","+tweetTime, sb.toString());
+          response = sb.toString();
 
           response = response.replace("\\n","\n");
           // response = response.replace("\\a","\a");

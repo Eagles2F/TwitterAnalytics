@@ -3,4 +3,4 @@
 
 cd /home/ubuntu/TwitterAnalytics/
 
-sudo env PATH="$PATH" CLASSPATH="$CLASSPATH" vertx run Server.java -instances 50
+sudo env PATH="$PATH" CLASSPATH="$CLASSPATH" vertx run Server.java -instances 30
