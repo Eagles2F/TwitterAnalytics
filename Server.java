@@ -130,7 +130,6 @@ public class Server extends Verticle {
               Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
           sb.append(tweet);
           // System.out.println(tweet);
-          cache.put(userId+","+tweetTime, sb.toString());
           response = sb.toString();
 
           response = response.replace("\\n","\n");
