@@ -107,6 +107,7 @@ public class Server extends Verticle {
     Configuration conf = HBaseConfiguration.create();
     conf.set("hbase.zookeeper.quorum", "54.172.68.251");
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
+    conf.set("hbase.rpc.timeout", "10000");
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
       final HTableInterface table = c.getTable(Bytes.toBytes("tweet"));
