@@ -2,14 +2,17 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"io"
 	"math"
 	"math/big"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 )
@@ -22,6 +25,12 @@ type Config struct {
 }
 
 var config = Config{}
+var db *sql.DB
+
+var query1Stmt *sql.Stmt
+var dbErr error
+
+var responseHeader string
 
 func initConfig() {
 	file, err := os.Open("config.json")
@@ -47,11 +56,87 @@ func q1Handler(w http.ResponseWriter, r *http.Request) {
 	message := r.URL.Query().Get("message")
 	// Time
 	now := time.Now()
-	body := fmt.Sprintf("%s,%s\n%s\n%s\n", config.TeamId, config.TeamAwsAccountId,
+	body := fmt.Sprintf("%s%s\n%s\n", responseHeader,
 		now.Format("2006-01-02 15:04:05"), decipher(message, key))
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	io.WriteString(w, body)
+}
+
+func q2Handler(w http.ResponseWriter, r *http.Request) {
+	// Get parameters
+	uid := r.URL.Query().Get("userid")
+	tm := r.URL.Query().Get("tweet_time")
+	ft, _ := time.Parse("2006-01-02 15:04:05", tm)
+	// format date to epoch timestamp
+	timestamp := ft.Unix()
+	uid64, _ := strconv.ParseInt(uid, 10, 64)
+	rs := query2(uid64, timestamp)
+	body := fmt.Sprintf("%s%s", responseHeader, rs)
+	w.Header().Set("Content-Type", "text/plain;charset=utf-8")
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	io.WriteString(w, body)
+}
+
+func q3Handler(w http.ResponseWriter, r *http.Request) {
+	// Get parameters
+	start := r.URL.Query().Get("start_date")
+	end := r.URL.Query().Get("end_date")
+	uid := r.URL.Query().Get("userid")
+	n := r.URL.Query().Get("n")
+
+	// convert to numerical values
+	uid64, _ := strconv.ParseInt(uid, 10, 64)
+	n32, _ := strconv.Atoi(n)
+	fts, _ := time.Parse("2006-01-02", start)
+	fte, _ := time.Parse("2006-01-02", end)
+	// format date to epoch timestamp
+	startu := fts.Unix()
+	endu := fte.Unix()
+
+	rs := query3(startu, endu, uid64, n32)
+	body := fmt.Sprintf("%s%s", responseHeader, rs)
+	w.Header().Set("Content-Type", "text/plain;charset=utf-8")
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	io.WriteString(w, body)
+}
+
+func query2(uid int64, timestamp int64) string {
+	rows, err := query1Stmt.Query(uid, timestamp)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer rows.Close()
+	var tid int64
+	var score int
+	var text string
+	var buffer bytes.Buffer
+	// tid, score, text
+	for rows.Next() {
+		if err := rows.Scan(&tid, &score, &text); err != nil {
+			panic(err.Error())
+		}
+		buffer.WriteString(unescape(fmt.Sprintf("%d:%d:%s\n", tid, score, text)))
+	}
+	if err := rows.Err(); err != nil {
+		panic(err.Error())
+	}
+	return buffer.String()
+}
+
+func query3(start int64, end int64, uid int64, n int) string {
+	return ""
+}
+
+func unescape(line string) string {
+	line = strings.Replace(line, "\\n", "\n", -1)
+	line = strings.Replace(line, "\\r", "\r", -1)
+	line = strings.Replace(line, "\\t", "\t", -1)
+	line = strings.Replace(line, "\\f", "\f", -1)
+	line = strings.Replace(line, "\\b", "\b", -1)
+	line = strings.Replace(line, "\\\"", "\"", -1)
+	line = strings.Replace(line, "\\\\", "\\", -1)
+	return line
 }
 
 func decipher(message string, key string) string {
@@ -97,9 +182,33 @@ func decipher(message string, key string) string {
 	return buffer1.String()
 }
 
+func getDbConn() *sql.DB {
+	db, err := sql.Open("mysql", "root:@/purrito")
+	if err != nil {
+		panic(err.Error())
+	}
+	return db
+}
+
 func main() {
 	initConfig()
+	responseHeader = fmt.Sprintf("%s,%s\n", config.TeamId, config.TeamAwsAccountId)
+
+	// shared database connection
+	db = getDbConn()
+	defer db.Close()
+
+	// shared query1 prepared statement
+	query1Stmt, dbErr = db.Prepare("select tid, score, text from tweets where uid = ? and time = ?")
+	if dbErr != nil {
+		fmt.Println("error 0")
+		panic(dbErr.Error())
+	}
+	defer query1Stmt.Close()
+
 	http.HandleFunc("/index.html", index)
 	http.HandleFunc("/q1", q1Handler)
+	http.HandleFunc("/q2", q2Handler)
+	http.HandleFunc("/q3", q3Handler)
 	http.ListenAndServe(fmt.Sprintf(":%d", config.HttpPort), nil)
 }
