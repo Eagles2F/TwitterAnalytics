@@ -149,14 +149,14 @@ public class Server extends Verticle {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            //System.out.println(response);
+
+            req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
+            req.response().putHeader("Content-Length", String.valueOf(length));
+            req.response().end(response, "utf-8");
           } catch (IOException e) {
                 e.printStackTrace();
           }
-          //System.out.println(response);
-
-          req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
-          req.response().putHeader("Content-Length", String.valueOf(length));
-          req.response().end(response, "utf-8");
         }
       });
     } catch (IOException e) {
