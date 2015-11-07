@@ -179,7 +179,7 @@ public class Server extends Verticle {
   				final String end_date = map.get("end_date");
           final String user_id = map.get("userid");
           final int n = Integer.valueOf("n");
-				  // System.out.println(userId + " " + tweetTime);
+				  System.out.println(start_date + " " + end_date + " " + user_id);
           String response;
 
           String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
