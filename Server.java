@@ -26,6 +26,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Comparator;
+import java.util.Collections;
 
 public class Server extends Verticle {
   private final static String TEAM_ID = "purrito";
@@ -166,6 +169,111 @@ public class Server extends Verticle {
           }
         }
       });
+
+      router.get("/q3", new Handler<HttpServerRequest>() {
+  			@Override
+  			public void handle(final HttpServerRequest req) {
+          // final long req_start = System.currentTimeMillis();
+  				MultiMap map = req.params();
+  				final String start_date = map.get("start_date");
+  				final String end_date = map.get("end_date");
+          final String user_id = map.get("userid");
+          final int n = Integer.valueOf("n");
+				  // System.out.println(userId + " " + tweetTime);
+          String response;
+
+          String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
+          StringBuilder sb = new StringBuilder();
+          sb.append(info);
+          //get tweets from this user
+          Get g = new Get(Bytes.toBytes(user_id));
+          try {
+            final long start_time = System.currentTimeMillis();
+            // System.out.println("mills taken before backend:" + (start_time - req_start));
+            Result rr =table.get(g);
+
+            String tweets = Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
+            String[] tweet_list = tweets.split("[####&&&&]");
+            StringBuilder pos = new StringBuilder();
+            ArrayList posList = new ArrayList<>();
+            StringBuilder neg = new StringBuilder();
+            ArrayList negList = new ArrayList<>();
+            SimpleDateFormat f = new SimpleDateFormat("yyyy-mm-dd");
+            long startdate = f.parse(start_date).getTime();
+            long enddate = f.parse(end_date).getTime();
+            for (int i=0;i<tweet_list.length;i++) {
+                  String[] units = tweet_list[i].split("(@@@@****)");
+                  String tweet_id = units[0];
+                  long date = Float.valueOf(units[1]).longValue();
+                  if (date < startdate || date > enddate) {
+                      continue;
+                  }
+                  String text = units[2];
+                  String score = units[3];
+                  Tweet t = new Tweet(id, text, score, f.format(date));
+                  if (score > 0) {
+                      posList.add(t);
+                  } else if (score < 0) {
+                      negList.add(t);
+                  }
+            }
+
+            Collections.sort(posList);
+            Collections.sort(negList);
+            if (posList.size() > 0) {
+                pos.append("Positive Tweets\n");
+            }
+            if (negList.size() > 0) {
+                neg.append("Negative Tweets\n");
+            }
+            for (Tweet tw : posList) {
+                pos.append(String.format("%s,%s,%s,%s\n",tw.date,tw.score,tw.id,tw.text));
+            }
+                        for (Tweet tw : negList) {
+                neg.append(String.format("%s,%s,%s,%s\n",tw.date,tw.score,tw.id,tw.text));
+            }
+
+            if (posList.size() > 0 && negList.size() >0) {
+              sb.append(pos.toString()).append("\n").append(neg.toString());
+            } else {
+              sb.append(pos.toString()).append(neg.toString());
+            }
+
+            final long end_time = System.currentTimeMillis();
+            System.out.println("mills taken for backend:" + (end_time - start_time));
+
+            response = sb.toString();
+
+            response = response.replace("\\n","\n");
+            // response = response.replace("\\a","\a");
+            response = response.replace("\\b","\b");
+            response = response.replace("\\f","\f");
+            response = response.replace("\\r","\r");
+            response = response.replace("\\t","\t");
+            // response = response.replace("\\v","\v");
+            response = response.replace("\\\'","\'");
+            response = response.replace("\\\"","\"");
+            response = response.replace("\\\\","\\");
+            int length = 0;
+            try {
+                length = response.getBytes("utf-8").length;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            //System.out.println(response);
+
+            req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
+            req.response().putHeader("Content-Length", String.valueOf(length));
+            req.response().end(response, "utf-8");
+            // final long req_end = System.currentTimeMillis();
+            // System.out.println("mills taken after backend:" + (req_end - end_time));
+          } catch (IOException e) {
+                e.printStackTrace();
+          } catch (Exception e) {
+                e.printStackTrace();
+          }
+        }
+      });
     } catch (IOException e) {
         e.printStackTrace();
     }
@@ -183,5 +291,31 @@ public class Server extends Verticle {
     });
     server.requestHandler(router);
     server.listen(80);
+  }
+
+  public static class Tweet implements Comparator {
+     public String text;
+     public String id;
+     public String score;
+     public String date;
+
+     public Tweet(String id, String text, String score, String date) {
+        this.id = id;
+        this.text= text;
+        this.score = score;
+        this.date = date;
+     }
+
+     public int compare(Object obj1, Object obj2) {
+          int p1 = Math.abs(Integer.valueOf(((Tweet) obj1).score));
+          int p2 = Math.abs(Integer.valueOf(((Tweet) obj2).score));
+          if (p1 > p2) {
+               return 1;
+           } else if (p1 < p2){
+               return -1;
+           } else {
+               return 0;
+           }
+     }
   }
 }
