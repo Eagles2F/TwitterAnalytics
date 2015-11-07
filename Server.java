@@ -195,9 +195,9 @@ public class Server extends Verticle {
             String tweets = Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
             String[] tweet_list = tweets.split("[####&&&&]");
             StringBuilder pos = new StringBuilder();
-            ArrayList<Tweet> posList = new ArrayList<>();
+            ArrayList posList = new ArrayList();
             StringBuilder neg = new StringBuilder();
-            ArrayList<Tweet> negList = new ArrayList<>();
+            ArrayList negList = new ArrayList();
             SimpleDateFormat f = new SimpleDateFormat("yyyy-mm-dd");
             long startdate = f.parse(start_date).getTime();
             long enddate = f.parse(end_date).getTime();
