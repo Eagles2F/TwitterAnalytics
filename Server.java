@@ -227,12 +227,14 @@ public class Server extends Verticle {
                 neg.append("Negative Tweets\n");
             }
             for (int i=0;i<posList.size();i++) {
-                pos.append(String.format("%s,%s,%s,%s\n",posList.get(i).
-                date,posList.get(i).score,posList.get(i).id,posList.get(i).text));
+                Tweet tw = (Tweet) posList.get(i);
+                pos.append(String.format("%s,%s,%s,%s\n",tw.
+                date,tw.score,tw.id,tw.text));
             }
             for (int i=0;i<negList.size();i++) {
-                neg.append(String.format("%s,%s,%s,%s\n",negList.get(i).
-                date,negList.get(i).score,negList.get(i).id,negList.get(i).text));
+                Tweet tw = (Tweet) negList.get(i);
+                neg.append(String.format("%s,%s,%s,%s\n",tw.
+                date,tw.score,tw.id,tw.text));
             }
 
             if (posList.size() > 0 && negList.size() >0) {
