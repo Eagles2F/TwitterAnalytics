@@ -113,7 +113,7 @@ public class Server extends Verticle {
       router.get("/q2", new Handler<HttpServerRequest>() {
   			@Override
   			public void handle(final HttpServerRequest req) {
-          final long req_start = System.currentTimeMillis();
+          // final long req_start = System.currentTimeMillis();
   				MultiMap map = req.params();
   				final String userId = map.get("userid");
   				final String tweetTime = map.get("tweet_time");
@@ -126,7 +126,7 @@ public class Server extends Verticle {
           Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
           try {
             final long start_time = System.currentTimeMillis();
-            System.out.println("mills taken before backend:" + (start_time - req_start));
+            // System.out.println("mills taken before backend:" + (start_time - req_start));
             Result rr =table.get(g);
             String tweet = String.format("%s:%s:%s\n",
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("id"))),
@@ -159,8 +159,8 @@ public class Server extends Verticle {
             req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
             req.response().putHeader("Content-Length", String.valueOf(length));
             req.response().end(response, "utf-8");
-            final long req_end = System.currentTimeMillis();
-            System.out.println("mills taken after backend:" + (req_end - end_time));
+            // final long req_end = System.currentTimeMillis();
+            // System.out.println("mills taken after backend:" + (req_end - end_time));
           } catch (IOException e) {
                 e.printStackTrace();
           }
