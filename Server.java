@@ -206,7 +206,6 @@ public class Server extends Verticle {
                   String[] units = tweet_list[i].split("\\(@@@@\\*\\*\\*\\*\\)");
                   String tweet_id = units[0];
                   long date = Float.valueOf(units[1]).longValue() * 1000;
-		  System.out.println("start end date " + startdate + " "+ enddate+ " " + date);
                   if (date < startdate || date > enddate) {
                       continue;
                   }
