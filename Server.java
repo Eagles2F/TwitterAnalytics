@@ -198,13 +198,14 @@ public class Server extends Verticle {
             ArrayList posList = new ArrayList();
             StringBuilder neg = new StringBuilder();
             ArrayList negList = new ArrayList();
-            SimpleDateFormat f = new SimpleDateFormat("yyyy-mm-dd");
+            SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
             long startdate = f.parse(start_date).getTime();
             long enddate = f.parse(end_date).getTime();
             for (int i=0;i<tweet_list.length;i++) {
                   String[] units = tweet_list[i].split("\\(@@@@\\*\\*\\*\\*\\)");
                   String tweet_id = units[0];
-                  long date = Float.valueOf(units[1]).longValue();
+                  long date = Float.valueOf(units[1]).longValue() * 1000;
+		  System.out.println("start end date " + startdate + " "+ enddate+ " " + date);
                   if (date < startdate || date > enddate) {
                       continue;
                   }
@@ -220,12 +221,11 @@ public class Server extends Verticle {
 
             Collections.sort(posList);
             Collections.sort(negList);
-            if (posList.size() > 0) {
-                pos.append("Positive Tweets\n");
-            }
-            if (negList.size() > 0) {
-                neg.append("Negative Tweets\n");
-            }
+            
+	    pos.append("Positive Tweets\n");
+
+            neg.append("Negative Tweets\n");
+            
             for (int i=0;i<posList.size();i++) {
 		if (i > n-1) continue;
                 Tweet tw = (Tweet) posList.get(i);
@@ -239,11 +239,8 @@ public class Server extends Verticle {
                 date,tw.score,tw.id,tw.text));
             }
 
-            if (posList.size() > 0 && negList.size() >0) {
-              sb.append(pos.toString()).append("\n").append(neg.toString());
-            } else {
-              sb.append(pos.toString()).append(neg.toString());
-            }
+       
+            sb.append(pos.toString()).append("\n").append(neg.toString());
 
             final long end_time = System.currentTimeMillis();
             System.out.println("mills taken for backend:" + (end_time - start_time));
@@ -299,7 +296,7 @@ public class Server extends Verticle {
     server.listen(80);
   }
 
-  public static class Tweet implements Comparator {
+  public static class Tweet implements Comparable<Tweet> {
      public String text;
      public String id;
      public String score;
@@ -311,10 +308,11 @@ public class Server extends Verticle {
         this.score = score;
         this.date = date;
      }
-
-     public int compare(Object obj1, Object obj2) {
-          int p1 = Math.abs(Integer.valueOf(((Tweet) obj1).score));
-          int p2 = Math.abs(Integer.valueOf(((Tweet) obj2).score));
+    
+     @Override
+     public int compareTo(Tweet obj) {
+          int p1 = Math.abs(Integer.valueOf(obj.score));
+          int p2 = Math.abs(Integer.valueOf(score));
           if (p1 > p2) {
                return 1;
            } else if (p1 < p2){
