@@ -112,7 +112,7 @@ public class Server extends Verticle {
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
-      final HTableInterface table = c.getTable(Bytes.toBytes("q3"));
+      final HTableInterface table = c.getTable(Bytes.toBytes("q2"));
       router.get("/q2", new Handler<HttpServerRequest>() {
   			@Override
   			public void handle(final HttpServerRequest req) {
@@ -170,6 +170,7 @@ public class Server extends Verticle {
         }
       });
 
+      final HTableInterface table3 = c.getTable(Bytes.toBytes("q3"));
       router.get("/q3", new Handler<HttpServerRequest>() {
   			@Override
   			public void handle(final HttpServerRequest req) {
@@ -190,7 +191,7 @@ public class Server extends Verticle {
           try {
             final long start_time = System.currentTimeMillis();
             // System.out.println("mills taken before backend:" + (start_time - req_start));
-            Result rr =table.get(g);
+            Result rr =table3.get(g);
 
             String tweets = Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
             String[] tweet_list = tweets.split("\\[####&&&&\\]");
@@ -221,25 +222,25 @@ public class Server extends Verticle {
 
             Collections.sort(posList);
             Collections.sort(negList);
-            
-	    pos.append("Positive Tweets\n");
+
+	          pos.append("Positive Tweets\n");
 
             neg.append("Negative Tweets\n");
-            
+
             for (int i=0;i<posList.size();i++) {
-		if (i > n-1) continue;
+		            if (i > n-1) continue;
                 Tweet tw = (Tweet) posList.get(i);
                 pos.append(String.format("%s,%s,%s,%s\n",tw.
                 date,tw.score,tw.id,tw.text));
             }
             for (int i=0;i<negList.size();i++) {
-		if (i>n-1) continue;
+		            if (i>n-1) continue;
                 Tweet tw = (Tweet) negList.get(i);
                 neg.append(String.format("%s,%s,%s,%s\n",tw.
                 date,tw.score,tw.id,tw.text));
             }
 
-       
+
             sb.append(pos.toString()).append("\n").append(neg.toString());
 
             final long end_time = System.currentTimeMillis();
@@ -308,7 +309,7 @@ public class Server extends Verticle {
         this.score = score;
         this.date = date;
      }
-    
+
      @Override
      public int compareTo(Tweet obj) {
           int p1 = Math.abs(Integer.valueOf(obj.score));
