@@ -112,7 +112,7 @@ public class Server extends Verticle {
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
-      final HTableInterface table = c.getTable(Bytes.toBytes("tweet"));
+      final HTableInterface table = c.getTable(Bytes.toBytes("q3"));
       router.get("/q2", new Handler<HttpServerRequest>() {
   			@Override
   			public void handle(final HttpServerRequest req) {
@@ -178,7 +178,7 @@ public class Server extends Verticle {
   				final String start_date = map.get("start_date");
   				final String end_date = map.get("end_date");
           final String user_id = map.get("userid");
-          final int n = Integer.valueOf("n");
+          final int n = Integer.parseInt(map.get("n"));
 				  System.out.println(start_date + " " + end_date + " " + user_id);
           String response;
 
@@ -193,7 +193,7 @@ public class Server extends Verticle {
             Result rr =table.get(g);
 
             String tweets = Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
-            String[] tweet_list = tweets.split("[####&&&&]");
+            String[] tweet_list = tweets.split("\\[####&&&&\\]");
             StringBuilder pos = new StringBuilder();
             ArrayList posList = new ArrayList();
             StringBuilder neg = new StringBuilder();
@@ -202,7 +202,7 @@ public class Server extends Verticle {
             long startdate = f.parse(start_date).getTime();
             long enddate = f.parse(end_date).getTime();
             for (int i=0;i<tweet_list.length;i++) {
-                  String[] units = tweet_list[i].split("(@@@@****)");
+                  String[] units = tweet_list[i].split("\\(@@@@\\*\\*\\*\\*\\)");
                   String tweet_id = units[0];
                   long date = Float.valueOf(units[1]).longValue();
                   if (date < startdate || date > enddate) {
@@ -227,11 +227,13 @@ public class Server extends Verticle {
                 neg.append("Negative Tweets\n");
             }
             for (int i=0;i<posList.size();i++) {
+		if (i > n-1) continue;
                 Tweet tw = (Tweet) posList.get(i);
                 pos.append(String.format("%s,%s,%s,%s\n",tw.
                 date,tw.score,tw.id,tw.text));
             }
             for (int i=0;i<negList.size();i++) {
+		if (i>n-1) continue;
                 Tweet tw = (Tweet) negList.get(i);
                 neg.append(String.format("%s,%s,%s,%s\n",tw.
                 date,tw.score,tw.id,tw.text));
