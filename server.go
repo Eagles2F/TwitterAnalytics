@@ -26,20 +26,9 @@ type Config struct {
 }
 
 var (
-	config       = Config{}
-	db           *sql.DB
-	query2Stmt1  *sql.Stmt
-	query2Stmt2  *sql.Stmt
-	query2Stmt3  *sql.Stmt
-	query2Stmt4  *sql.Stmt
-	query2Stmt5  *sql.Stmt
-	query2Stmt6  *sql.Stmt
-	query2Stmt7  *sql.Stmt
-	query2Stmt8  *sql.Stmt
-	query2Stmt9  *sql.Stmt
-	query2Stmt10 *sql.Stmt
-
-	stmtMap        map[uint32]*sql.Stmt
+	config         = Config{}
+	db             *sql.DB
+	utable         map[uint32]string
 	dbErr          error
 	responseHeader string
 )
@@ -116,8 +105,9 @@ func q3Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func query2(uid int64, timestamp int64) string {
-	stmt := queryStmt(uid)
-	rows, err := stmt.Query(uid, timestamp)
+	tb := uidTable(uid)
+	q := fmt.Sprint("select tid, score, text from ", tb, " where uid = ? and time = ?")
+	rows, err := db.Query(q, uid, timestamp)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -145,11 +135,11 @@ func hash(s string) uint32 {
 	return h.Sum32()
 }
 
-func queryStmt(uid int64) *sql.Stmt {
+func uidTable(uid int64) string {
 	// the data set we get is ordered by uid and is string comparison
 	uids := strconv.FormatInt(uid, 10)
 	i := hash(uids)%10 + 1
-	return stmtMap[i]
+	return utable[i]
 }
 
 func query3(start int64, end int64, uid int64, n int) string {
@@ -226,45 +216,23 @@ func main() {
 	db = getDbConn()
 	defer db.Close()
 
-	// shared query1 prepared statement
-	query2Stmt1, _ = db.Prepare("select tid, score, text from tweets_q2_1 where uid = ? and time = ?")
-	query2Stmt2, _ = db.Prepare("select tid, score, text from tweets_q2_2 where uid = ? and time = ?")
-	query2Stmt3, _ = db.Prepare("select tid, score, text from tweets_q2_3 where uid = ? and time = ?")
-	query2Stmt4, _ = db.Prepare("select tid, score, text from tweets_q2_4 where uid = ? and time = ?")
-	query2Stmt5, _ = db.Prepare("select tid, score, text from tweets_q2_5 where uid = ? and time = ?")
-	query2Stmt6, _ = db.Prepare("select tid, score, text from tweets_q2_6 where uid = ? and time = ?")
-	query2Stmt7, _ = db.Prepare("select tid, score, text from tweets_q2_7 where uid = ? and time = ?")
-	query2Stmt8, _ = db.Prepare("select tid, score, text from tweets_q2_8 where uid = ? and time = ?")
-	query2Stmt9, _ = db.Prepare("select tid, score, text from tweets_q2_9 where uid = ? and time = ?")
-	query2Stmt10, _ = db.Prepare("select tid, score, text from tweets_q2_10 where uid = ? and time = ?")
-
-	stmtMap = make(map[uint32]*sql.Stmt)
-	stmtMap[1] = query2Stmt1
-	stmtMap[2] = query2Stmt2
-	stmtMap[3] = query2Stmt3
-	stmtMap[4] = query2Stmt4
-	stmtMap[5] = query2Stmt5
-	stmtMap[6] = query2Stmt6
-	stmtMap[7] = query2Stmt7
-	stmtMap[8] = query2Stmt8
-	stmtMap[9] = query2Stmt9
-	stmtMap[10] = query2Stmt10
+	utable = make(map[uint32]string)
+	utable[0] = "tweets_q2_1"
+	utable[1] = "tweets_q2_1"
+	utable[2] = "tweets_q2_2"
+	utable[3] = "tweets_q2_3"
+	utable[4] = "tweets_q2_4"
+	utable[5] = "tweets_q2_5"
+	utable[6] = "tweets_q2_6"
+	utable[7] = "tweets_q2_7"
+	utable[8] = "tweets_q2_8"
+	utable[9] = "tweets_q2_9"
+	utable[10] = "tweets_q2_10"
 
 	if dbErr != nil {
 		fmt.Println("error 0")
 		panic(dbErr.Error())
 	}
-	defer query2Stmt1.Close()
-	defer query2Stmt2.Close()
-	defer query2Stmt3.Close()
-	defer query2Stmt4.Close()
-	defer query2Stmt5.Close()
-	defer query2Stmt6.Close()
-	defer query2Stmt7.Close()
-	defer query2Stmt8.Close()
-	defer query2Stmt9.Close()
-	defer query2Stmt10.Close()
-
 	http.HandleFunc("/index.html", index)
 	http.HandleFunc("/q1", q1Handler)
 	http.HandleFunc("/q2", q2Handler)
