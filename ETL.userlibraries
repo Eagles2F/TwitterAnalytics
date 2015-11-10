@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eclipse-userlibraries>
+  <library name="lib">
+    <archive path="/home/jindaxian/projects/ETL/lib/gson-2.3.1.jar" />
+    <archive path="/home/jindaxian/projects/ETL/lib/hadoop-mapreduce-client-core-2.6.0.jar" />
+    <archive path="/home/jindaxian/projects/ETL/lib/hadoop-common-2.6.0.jar" />
+  </library>
+</eclipse-userlibraries>
+
