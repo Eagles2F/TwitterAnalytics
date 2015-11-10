@@ -277,6 +277,75 @@ public class Server extends Verticle {
           }
         }
       });
+
+      final HTableInterface table = c.getTable(Bytes.toBytes("q4"));
+      router.get("/q4", new Handler<HttpServerRequest>() {
+  			@Override
+  			public void handle(final HttpServerRequest req) {
+          // final long req_start = System.currentTimeMillis();
+  				MultiMap map = req.params();
+  				String hashtag = map.get("hashtag");
+  				final int n = Integer.parseInt(map.get("n"));
+
+          hashtag = hashtag.replace("\\n","\n");
+          // response = response.replace("\\a","\a");
+          hashtag = hashtag.replace("\\b","\b");
+          hashtag = hashtag.replace("\\f","\f");
+          hashtag = hashtag.replace("\\r","\r");
+          hashtag = hashtag.replace("\\t","\t");
+          // response = response.replace("\\v","\v");
+          hashtag = hashtag.replace("\\\'","\'");
+          hashtag = hashtag.replace("\\\"","\"");
+          hashtag = hashtag.replace("\\\\","\\");
+
+          String response;
+
+          String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
+          StringBuilder sb = new StringBuilder();
+          sb.append(info);
+          Get g = new Get(Bytes.toBytes(hashtag));
+          try {
+            final long start_time = System.currentTimeMillis();
+            // System.out.println("mills taken before backend:" + (start_time - req_start));
+            Result rr =table.get(g);
+            String tweets =
+                Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("tweets")));
+            String[] tweet_list = tweets.split("asgdhjbf673bvsalfjoq3ng");
+
+            for (int i=0;i<tweet_list.length;i++) {
+                if (i < n) {
+                  sb.append(tweet_list[i]).append("\n");
+                }
+            }
+
+            response = sb.toString();
+
+            response = response.replace("\\n","\n");
+            // response = response.replace("\\a","\a");
+            response = response.replace("\\b","\b");
+            response = response.replace("\\f","\f");
+            response = response.replace("\\r","\r");
+            response = response.replace("\\t","\t");
+            // response = response.replace("\\v","\v");
+            response = response.replace("\\\'","\'");
+            response = response.replace("\\\"","\"");
+            response = response.replace("\\\\","\\");
+            int length = 0;
+            try {
+                length = response.getBytes("utf-8").length;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            //System.out.println(response);
+
+            req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
+            req.response().putHeader("Content-Length", String.valueOf(length));
+            req.response().end(response, "utf-8");
+          } catch (IOException e) {
+                e.printStackTrace();
+          }
+        }
+      });
     } catch (IOException e) {
         e.printStackTrace();
     }
