@@ -180,7 +180,7 @@ public class Server extends Verticle {
   				final String end_date = map.get("end_date");
           final String user_id = map.get("userid");
           final int n = Integer.parseInt(map.get("n"));
-				  System.out.println(start_date + " " + end_date + " " + user_id);
+	//			  System.out.println(start_date + " " + end_date + " " + user_id);
           String response;
 
           String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
@@ -189,7 +189,7 @@ public class Server extends Verticle {
           //get tweets from this user
           Get g = new Get(Bytes.toBytes(user_id));
           try {
-            final long start_time = System.currentTimeMillis();
+         //   final long start_time = System.currentTimeMillis();
             // System.out.println("mills taken before backend:" + (start_time - req_start));
             Result rr =table3.get(g);
 
@@ -242,8 +242,8 @@ public class Server extends Verticle {
 
             sb.append(pos.toString()).append("\n").append(neg.toString());
 
-            final long end_time = System.currentTimeMillis();
-            System.out.println("mills taken for backend:" + (end_time - start_time));
+        //    final long end_time = System.currentTimeMillis();
+        //    System.out.println("mills taken for backend:" + (end_time - start_time));
 
             response = sb.toString();
 

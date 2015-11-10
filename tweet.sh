@@ -3,4 +3,4 @@
 
 cd /home/hadoop/TwitterAnalytics/
 
-sudo env PATH="$PATH" CLASSPATH="$CLASSPATH" vertx run Server.java -instances 30
+sudo env PATH="$PATH" CLASSPATH="$CLASSPATH" vertx run Server.java -instances 50
