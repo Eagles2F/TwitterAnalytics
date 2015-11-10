@@ -169,7 +169,7 @@ public class Server extends Verticle {
           }
         }
       });
-     
+     /*
       final HTableInterface table3 = c.getTable(Bytes.toBytes("q3"));
       router.get("/q3", new Handler<HttpServerRequest>() {
   			@Override
@@ -276,7 +276,7 @@ public class Server extends Verticle {
                 e.printStackTrace();
           }
         }
-      });
+      });*/
     } catch (IOException e) {
         e.printStackTrace();
     }
