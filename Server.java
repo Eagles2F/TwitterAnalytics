@@ -111,7 +111,7 @@ public class Server extends Verticle {
     conf.set("hbase.zookeeper.quorum", "54.165.55.216");
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
-      final HConnection c = HConnectionManager.createConnection(conf);/*
+      final HConnection c = HConnectionManager.createConnection(conf);
       final HTableInterface table = c.getTable(Bytes.toBytes("q2"));
       router.get("/q2", new Handler<HttpServerRequest>() {
   			@Override
@@ -128,7 +128,7 @@ public class Server extends Verticle {
           sb.append(info);
           Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
           try {
-            final long start_time = System.currentTimeMillis();
+            //final long start_time = System.currentTimeMillis();
             // System.out.println("mills taken before backend:" + (start_time - req_start));
             Result rr =table.get(g);
             String tweet = String.format("%s:%s:%s\n",
@@ -136,8 +136,8 @@ public class Server extends Verticle {
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
             sb.append(tweet);
-            final long end_time = System.currentTimeMillis();
-            System.out.println("mills taken for backend:" + (end_time - start_time));
+            //final long end_time = System.currentTimeMillis();
+            //System.out.println("mills taken for backend:" + (end_time - start_time));
 
             response = sb.toString();
 
@@ -169,7 +169,7 @@ public class Server extends Verticle {
           }
         }
       });
-      */
+     
       final HTableInterface table3 = c.getTable(Bytes.toBytes("q3"));
       router.get("/q3", new Handler<HttpServerRequest>() {
   			@Override
