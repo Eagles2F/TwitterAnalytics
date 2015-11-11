@@ -350,9 +350,7 @@ public class Server extends Verticle {
             req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
             req.response().putHeader("Content-Length", String.valueOf(length));
             req.response().end(response, "utf-8");
-          } catch (IOException e) {
-                e.printStackTrace();
-          } catch (NullPointerException e) {
+          } catch (Exception e) {
                 e.printStackTrace();
           }
         }
