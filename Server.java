@@ -311,7 +311,9 @@ public class Server extends Verticle {
             Result rr = table.get(g);
             String tweets =
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
-            System.out.println("hashtag " + hashtag);
+            if (tweets == null) {
+                System.out.println("hashtag " + hashtag);
+            }
             String[] tweet_list = tweets.split("asgdhjbf673bvsalfjoq3ng");
             SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
             ArrayList tweetList = new ArrayList();
