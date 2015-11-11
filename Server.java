@@ -108,7 +108,7 @@ public class Server extends Verticle {
     });
 
     Configuration conf = HBaseConfiguration.create();
-    conf.set("hbase.zookeeper.quorum", "52.91.131.63");
+    conf.set("hbase.zookeeper.quorum", "54.165.192.38");
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);
@@ -128,16 +128,12 @@ public class Server extends Verticle {
           sb.append(info);
           Get g = new Get(Bytes.toBytes(userId+","+tweetTime));
           try {
-            final long start_time = System.currentTimeMillis();
-            // System.out.println("mills taken before backend:" + (start_time - req_start));
             Result rr =table.get(g);
             String tweet = String.format("%s:%s:%s\n",
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("id"))),
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("score"))),
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text"))));
             sb.append(tweet);
-            final long end_time = System.currentTimeMillis();
-            System.out.println("mills taken for backend:" + (end_time - start_time));
 
             response = sb.toString();
 
@@ -181,7 +177,6 @@ public class Server extends Verticle {
   				final String end_date = map.get("end_date");
           final String user_id = map.get("userid");
           final int n = Integer.parseInt(map.get("n"));
-				  System.out.println(start_date + " " + end_date + " " + user_id);
           String response;
 
           String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
@@ -190,8 +185,6 @@ public class Server extends Verticle {
           //get tweets from this user
           Get g = new Get(Bytes.toBytes(user_id));
           try {
-            final long start_time = System.currentTimeMillis();
-            // System.out.println("mills taken before backend:" + (start_time - req_start));
             Result rr =table3.get(g);
 
             String tweets = Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
@@ -242,9 +235,6 @@ public class Server extends Verticle {
 
 
             sb.append(pos.toString()).append("\n").append(neg.toString());
-
-            final long end_time = System.currentTimeMillis();
-            System.out.println("mills taken for backend:" + (end_time - start_time));
 
             response = sb.toString();
 
