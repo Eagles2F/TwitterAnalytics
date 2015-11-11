@@ -279,7 +279,7 @@ public class Server extends Verticle {
         }
       });
       */
-      final HTableInterface table = c.getTable(Bytes.toBytes("q4"));
+      final HTableInterface table3 = c.getTable(Bytes.toBytes("q4"));
       router.get("/q4", new Handler<HttpServerRequest>() {
   			@Override
   			public void handle(final HttpServerRequest req) {
@@ -311,7 +311,7 @@ public class Server extends Verticle {
           try {
             //final long start_time = System.currentTimeMillis();
             // System.out.println("mills taken before backend:" + (start_time - req_start));
-            Result rr = table.get(g);
+            Result rr = table3.get(g);
             String tweets =
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
             if (tweets == null) {
