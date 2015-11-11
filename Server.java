@@ -288,16 +288,16 @@ public class Server extends Verticle {
   				String hashtag = map.get("hashtag");
   				final int n = Integer.parseInt(map.get("n"));
 
-          hashtag = hashtag.replace("\\n","\n");
+          hashtag = hashtag.replace("\\", "\\\\");
+          hashtag = hashtag.replace("\n", "\\n");
           // response = response.replace("\\a","\a");
-          hashtag = hashtag.replace("\\b","\b");
-          hashtag = hashtag.replace("\\f","\f");
-          hashtag = hashtag.replace("\\r","\r");
-          hashtag = hashtag.replace("\\t","\t");
+          hashtag = hashtag.replace("\b", "\\b");
+          hashtag = hashtag.replace("\f", "\\f");
+          hashtag = hashtag.replace("\r", "\\r");
+          hashtag = hashtag.replace("\t", "\\t");
           // response = response.replace("\\v","\v");
-          hashtag = hashtag.replace("\\\'","\'");
-          hashtag = hashtag.replace("\\\"","\"");
-          hashtag = hashtag.replace("\\\\","\\");
+          hashtag = hashtag.replace("\'", "\\\'");
+          hashtag = hashtag.replace("\"", "\\\"");
 
           String response;
 
@@ -306,16 +306,24 @@ public class Server extends Verticle {
           sb.append(info);
           Get g = new Get(Bytes.toBytes(hashtag));
           try {
-            final long start_time = System.currentTimeMillis();
+            //final long start_time = System.currentTimeMillis();
             // System.out.println("mills taken before backend:" + (start_time - req_start));
             Result rr = table.get(g);
             String tweets =
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
             String[] tweet_list = tweets.split("asgdhjbf673bvsalfjoq3ng");
-
+            SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
+            ArrayList tweetList = new ArrayList();
             for (int i=0;i<tweet_list.length;i++) {
+                String[] units = tweet_list[i].split(":");
+                tweetList.add(new Tweetq4(tweetList[i] ,f.parse(start_date).getTime(units[0])));
+            }
+
+            Collections.sort(tweetList);
+
+            for (int i=0;i<tweetList.size();i++) {
                 if (i < n) {
-                  sb.append(tweet_list[i]).append("\n");
+                    sb.append(tweetList.get(i).text).append("\n");
                 }
             }
 
@@ -337,12 +345,13 @@ public class Server extends Verticle {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            //System.out.println(response);
 
             req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
             req.response().putHeader("Content-Length", String.valueOf(length));
             req.response().end(response, "utf-8");
           } catch (IOException e) {
+                e.printStackTrace();
+          } catch (NullPointerException e) {
                 e.printStackTrace();
           }
         }
@@ -383,6 +392,29 @@ public class Server extends Verticle {
      public int compareTo(Tweet obj) {
           int p1 = Math.abs(Integer.valueOf(obj.score));
           int p2 = Math.abs(Integer.valueOf(score));
+          if (p1 > p2) {
+               return 1;
+           } else if (p1 < p2){
+               return -1;
+           } else {
+               return 0;
+           }
+     }
+  }
+
+  public static class Tweetq4 implements Comparable<Tweetq4> {
+     public String text;
+     public long date;
+
+     public Tweetq4(String text, long date) {
+        this.text= text;
+        this.date = date;
+     }
+
+     @Override
+     public int compareTo(Tweetq4 obj) {
+          long p1 = obj.date;
+          long p2 = date;
           if (p1 > p2) {
                return 1;
            } else if (p1 < p2){
