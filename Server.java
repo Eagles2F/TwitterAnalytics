@@ -304,7 +304,8 @@ public class Server extends Verticle {
           String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
           StringBuilder sb = new StringBuilder();
           sb.append(info);
-          Get g = new Get(Bytes.toBytes(hashtag));
+          //Get g = new Get(Bytes.toBytes(hashtag));
+          Get g = new Get(hashTag.getBytes("utf-8"));
           try {
             //final long start_time = System.currentTimeMillis();
             // System.out.println("mills taken before backend:" + (start_time - req_start));
