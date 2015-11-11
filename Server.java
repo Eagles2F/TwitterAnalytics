@@ -287,17 +287,19 @@ public class Server extends Verticle {
   				MultiMap map = req.params();
   				String hashtag = map.get("hashtag");
   				final int n = Integer.parseInt(map.get("n"));
-
-          hashtag = hashtag.replace("\\", "\\\\");
-          hashtag = hashtag.replace("\n", "\\n");
-          // response = response.replace("\\a","\a");
-          hashtag = hashtag.replace("\b", "\\b");
-          hashtag = hashtag.replace("\f", "\\f");
-          hashtag = hashtag.replace("\r", "\\r");
-          hashtag = hashtag.replace("\t", "\\t");
-          // response = response.replace("\\v","\v");
-          hashtag = hashtag.replace("\'", "\\\'");
-          hashtag = hashtag.replace("\"", "\\\"");
+          System.out.println(hashtag);
+          hashtag = escape(hashtag);
+          System.out.println(hashtag);
+          // hashtag = hashtag.replace("\\", "\\\\");
+          // hashtag = hashtag.replace("\n", "\\n");
+          // // response = response.replace("\\a","\a");
+          // hashtag = hashtag.replace("\b", "\\b");
+          // hashtag = hashtag.replace("\f", "\\f");
+          // hashtag = hashtag.replace("\r", "\\r");
+          // hashtag = hashtag.replace("\t", "\\t");
+          // // response = response.replace("\\v","\v");
+          // hashtag = hashtag.replace("\'", "\\\'");
+          // hashtag = hashtag.replace("\"", "\\\"");
 
           String response;
 
@@ -438,5 +440,17 @@ public class Server extends Verticle {
                 }
            }
      }
+  }
+
+  public static String escape(String txt){
+      txt = txt.replace("\\", "\\\\");
+      txt = txt.replace("\n", "\\n");
+      txt = txt.replace("\t", "\\t");
+      txt = txt.replace("\r", "\\r");
+      txt = txt.replace("\f", "\\f");
+      txt = txt.replace("\b", "\\b");
+      txt = txt.replace("\'", "\\\'");
+      txt = txt.replace("\"", "\\\"");
+      return txt;
   }
 }
