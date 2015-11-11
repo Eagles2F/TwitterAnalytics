@@ -320,8 +320,8 @@ public class Server extends Verticle {
             for (int i=0;i<tweet_list.length;i++) {
                 String[] units = tweet_list[i].split(":");
                 tweetList.add(new Tweetq4(tweet_list[i] ,
-                  f.parse(units[0]).getTime()),
-                  Integer.parseInt(units[1]));
+                  f.parse(units[0]).getTime(),
+                  Integer.parseInt(units[1])));
             }
 
             Collections.sort(tweetList);
