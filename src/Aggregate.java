@@ -317,30 +317,32 @@ public class Aggregate {
     	}
     }
     public static void main(String args[]) throws Exception{
-		 Configuration conf = new Configuration();
-		 Job  job1 = new Job(conf, "TweetQ4");
-		 job1.setJarByClass(Aggregate.class);
-		 job1.setMapperClass(Aggregate.TweetMapper.class);
-		 job1.setCombinerClass(Aggregate.TweetCombiner.class);
-		 job1.setReducerClass(Aggregate.TweetReducer.class);
+//		 Configuration conf = new Configuration();
+//		 Job  job1 = new Job(conf, "TweetQ4");
+//		 job1.setJarByClass(Aggregate.class);
+//		 job1.setMapperClass(Aggregate.TweetMapper.class);
+//		 job1.setCombinerClass(Aggregate.TweetCombiner.class);
+//		 job1.setReducerClass(Aggregate.TweetReducer.class);
+//
+//		 job1.setOutputKeyClass(Text.class);
+//		 job1.setOutputValueClass(Text.class);
+//		 //FileInputFormat.addInputPath(job, new Path("s3n://cmucc-datasets/twitter/f15/"));
+//		 //FileOutputFormat.setOutputPath(job, new Path("s3n://15619etlpurrito/outputq4/"));
+//		 FileInputFormat.addInputPath(job1,new Path(args[0]));
+//		 FileOutputFormat.setOutputPath(job1, new Path(args[1]));
+//		 job1.waitForCompletion(true);
 
-		 job1.setOutputKeyClass(Text.class);
-		 job1.setOutputValueClass(Text.class);
-		 //FileInputFormat.addInputPath(job, new Path("s3n://cmucc-datasets/twitter/f15/"));
-		 //FileOutputFormat.setOutputPath(job, new Path("s3n://15619etlpurrito/outputq4/"));
-		 FileInputFormat.addInputPath(job1,new Path(args[0]));
-		 FileOutputFormat.setOutputPath(job1, new Path(args[1]));
-		 job1.waitForCompletion(true);
 
-		Job  job2 = new Job(conf, "TweetQ4Hbase");
+		Configuration conf1 = new Configuration();
+		Job  job2 = new Job(conf1, "TweetQ4Hbase");
 		job2.setJarByClass(Aggregate.class);
 		job2.setMapperClass(AggregateHbase.HbaseMapper.class);
 		job2.setCombinerClass(AggregateHbase.HbaseComniner.class);
 		job2.setReducerClass(AggregateHbase.HaseReducVer.class);
 		job2.setOutputKeyClass(Text.class);
 		job2.setOutputValueClass(Text.class);
-		FileInputFormat.addInputPath(job2,new Path(args[1]));
-		FileOutputFormat.setOutputPath(job2, new Path(args[2]));
+		FileInputFormat.addInputPath(job2,new Path(args[0]));
+		FileOutputFormat.setOutputPath(job2, new Path(args[1]));
 		job2.waitForCompletion(true);
 	}
   }
