@@ -287,9 +287,9 @@ public class Server extends Verticle {
   				MultiMap map = req.params();
   				String hashtag = map.get("hashtag");
   				final int n = Integer.parseInt(map.get("n"));
-          System.out.println(hashtag);
+          // System.out.println(hashtag);
           hashtag = escape(hashtag);
-          System.out.println(hashtag);
+          // System.out.println(hashtag);
           // hashtag = hashtag.replace("\\", "\\\\");
           // hashtag = hashtag.replace("\n", "\\n");
           // // response = response.replace("\\a","\a");
@@ -306,8 +306,8 @@ public class Server extends Verticle {
           String info = String.format("%s,%s\n", TEAM_ID, AWS_ACCOUNT_ID);
           StringBuilder sb = new StringBuilder();
           sb.append(info);
-          //Get g = new Get(Bytes.toBytes(hashtag));
-          Get g = new Get(hashTag.getBytes("utf-8"));
+          Get g = new Get(Bytes.toBytes(hashtag));
+          // Get g = new Get(hashTag.getBytes("utf-8"));
           try {
             //final long start_time = System.currentTimeMillis();
             // System.out.println("mills taken before backend:" + (start_time - req_start));
