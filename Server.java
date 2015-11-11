@@ -323,7 +323,8 @@ public class Server extends Verticle {
 
             for (int i=0;i<tweetList.size();i++) {
                 if (i < n) {
-                    sb.append(tweetList.get(i).text).append("\n");
+                    Tweetq4 t = (Tweetq4) tweetList.get(i);
+                    sb.append(t.text).append("\n");
                 }
             }
 
