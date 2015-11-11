@@ -108,7 +108,7 @@ public class Server extends Verticle {
     });
 
     Configuration conf = HBaseConfiguration.create();
-    conf.set("hbase.zookeeper.quorum", "54.165.55.216");
+    conf.set("hbase.zookeeper.quorum", "52.91.131.63");
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
       final HConnection c = HConnectionManager.createConnection(conf);/*
@@ -170,6 +170,7 @@ public class Server extends Verticle {
         }
       });
       */
+      /*
       final HTableInterface table3 = c.getTable(Bytes.toBytes("q3"));
       router.get("/q3", new Handler<HttpServerRequest>() {
   			@Override
@@ -277,7 +278,7 @@ public class Server extends Verticle {
           }
         }
       });
-
+      */
       final HTableInterface table = c.getTable(Bytes.toBytes("q4"));
       router.get("/q4", new Handler<HttpServerRequest>() {
   			@Override
@@ -307,9 +308,9 @@ public class Server extends Verticle {
           try {
             final long start_time = System.currentTimeMillis();
             // System.out.println("mills taken before backend:" + (start_time - req_start));
-            Result rr =table.get(g);
+            Result rr = table.get(g);
             String tweets =
-                Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("tweets")));
+                Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
             String[] tweet_list = tweets.split("asgdhjbf673bvsalfjoq3ng");
 
             for (int i=0;i<tweet_list.length;i++) {
