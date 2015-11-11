@@ -412,8 +412,8 @@ public class Server extends Verticle {
 
      @Override
      public int compareTo(Tweetq4 obj) {
-          long p1 = obj.date;
-          long p2 = date;
+          long p2 = obj.date;
+          long p1 = date;
           if (p1 > p2) {
                return 1;
            } else if (p1 < p2){
