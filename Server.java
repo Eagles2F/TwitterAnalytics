@@ -319,7 +319,9 @@ public class Server extends Verticle {
             ArrayList tweetList = new ArrayList();
             for (int i=0;i<tweet_list.length;i++) {
                 String[] units = tweet_list[i].split(":");
-                tweetList.add(new Tweetq4(tweet_list[i] ,f.parse(units[0]).getTime()));
+                tweetList.add(new Tweetq4(tweet_list[i] ,
+                  f.parse(units[0]).getTime()),
+                  Integer.parseInt(units[1]));
             }
 
             Collections.sort(tweetList);
@@ -407,22 +409,32 @@ public class Server extends Verticle {
   public static class Tweetq4 implements Comparable<Tweetq4> {
      public String text;
      public long date;
+     public int count;
 
-     public Tweetq4(String text, long date) {
+     public Tweetq4(String text, long date, int count) {
         this.text= text;
         this.date = date;
+        this.count = count;
      }
 
      @Override
      public int compareTo(Tweetq4 obj) {
-          long p2 = obj.date;
-          long p1 = date;
+          int p2 = obj.count;
+          int p1 = count;
+          long d2 = obj.date;
+          long d1 = date;
           if (p1 > p2) {
                return 1;
            } else if (p1 < p2){
                return -1;
            } else {
-               return 0;
+                if (d1 > d2) {
+                    return 1;
+                } else if (d1 < d2) {
+                    return -1;
+                } else {
+                    return 0;
+                }
            }
      }
   }
