@@ -111,7 +111,7 @@ public class Server extends Verticle {
     conf.set("hbase.zookeeper.quorum", "52.91.131.63");
     conf.setInt("hbase.zookeeper.property.clientPort", 2181);
     try {
-      final HConnection c = HConnectionManager.createConnection(conf);/*
+      final HConnection c = HConnectionManager.createConnection(conf);
       final HTableInterface table = c.getTable(Bytes.toBytes("q2"));
       router.get("/q2", new Handler<HttpServerRequest>() {
   			@Override
@@ -169,8 +169,8 @@ public class Server extends Verticle {
           }
         }
       });
-      */
-      /*
+
+    /*
       final HTableInterface table3 = c.getTable(Bytes.toBytes("q3"));
       router.get("/q3", new Handler<HttpServerRequest>() {
   			@Override
