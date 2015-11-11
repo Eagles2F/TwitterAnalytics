@@ -312,7 +312,7 @@ public class Server extends Verticle {
             String tweets =
                 Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
             if (tweets == null) {
-                System.out.println("hashtag " + hashtag);
+                System.out.println("hashtag:" + hashtag + " original:" + map.get("hashtag"));
             }
             String[] tweet_list = tweets.split("asgdhjbf673bvsalfjoq3ng");
             SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
@@ -419,8 +419,8 @@ public class Server extends Verticle {
 
      @Override
      public int compareTo(Tweetq4 obj) {
-          int p2 = obj.count;
-          int p1 = count;
+          int p1 = obj.count;
+          int p2 = count;
           long d2 = obj.date;
           long d1 = date;
           if (p1 > p2) {
