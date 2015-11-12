@@ -12,6 +12,8 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -25,12 +27,48 @@ type Config struct {
 	HttpPort         int
 }
 
+type Q3Response struct {
+	Timestamp int
+	Score     int
+	TweetId   int64
+	Text      string
+}
+
+type Q4Response struct {
+	Count     int
+	Timestamp int
+	Content   string
+}
+
+type PNTweets []Q3Response
+type HTTweets []Q4Response
+
+func (t PNTweets) Len() int      { return len(t) }
+func (t PNTweets) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
+func (t PNTweets) Less(i, j int) bool {
+	if math.Abs(float64(t[i].Score)) == math.Abs(float64(t[j].Score)) {
+		return t[i].TweetId < t[j].TweetId
+	} else {
+		return math.Abs(float64(t[i].Score)) > math.Abs(float64(t[j].Score))
+	}
+}
+
+func (t HTTweets) Len() int      { return len(t) }
+func (t HTTweets) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
+func (t HTTweets) Less(i, j int) bool {
+	if t[i].Count == t[j].Count {
+		return t[i].Timestamp < t[j].Timestamp
+	} else {
+		return t[i].Count > t[j].Count
+	}
+}
+
 var (
 	config         = Config{}
 	db             *sql.DB
-	utable         map[uint32]string
-	dbErr          error
+	qtable         map[string]*sql.Stmt
 	responseHeader string
+	itags          map[string]bool
 )
 
 func initConfig() {
@@ -43,6 +81,20 @@ func initConfig() {
 		fmt.Println("error:", err)
 	}
 	file.Close()
+}
+
+func (response *Q3Response) String() string {
+	tm := time.Unix(int64(response.Timestamp), 0)
+	// Mon Jan 2 15:04:05 -0700 MST 2006
+	strTime := tm.Format("2006-01-02")
+	return fmt.Sprintf("%s,%d,%d,%s\n", strTime, response.Score, response.TweetId, response.Text)
+}
+
+func (response *Q4Response) String() string {
+	tm := time.Unix(int64(response.Timestamp), 0)
+	// Mon Jan 2 15:04:05 -0700 MST 2006
+	strTime := tm.Format("2006-01-02")
+	return fmt.Sprintf("%s:%d:%s\n", strTime, response.Count, response.Content)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -71,8 +123,15 @@ func q2Handler(w http.ResponseWriter, r *http.Request) {
 	ft, _ := time.Parse("2006-01-02 15:04:05", tm)
 	// format date to epoch timestamp
 	timestamp := ft.Unix()
-	uid64, _ := strconv.ParseInt(uid, 10, 64)
-	rs := query2(uid64, timestamp)
+	// HACK: I made a mistake when extracting and loading data
+	// and I have to use this same ugly stupid code snippet to make it correct
+	// following is supposed to the correct one
+	//	rs := query2(uid, strconv.FormatInt(timestamp, 10))
+	st := strconv.FormatInt(timestamp, 10)
+	it, _ := strconv.ParseFloat(st, 32)
+	st = strconv.Itoa((int)(it))
+	rs := query2(uid, st)
+
 	body := fmt.Sprintf("%s%s", responseHeader, rs)
 	w.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
@@ -81,51 +140,52 @@ func q2Handler(w http.ResponseWriter, r *http.Request) {
 
 func q3Handler(w http.ResponseWriter, r *http.Request) {
 	// Get parameters
-	/*
-		start := r.URL.Query().Get("start_date")
-		end := r.URL.Query().Get("end_date")
-		uid := r.URL.Query().Get("userid")
-		n := r.URL.Query().Get("n")
+	start := r.URL.Query().Get("start_date")
+	end := r.URL.Query().Get("end_date")
+	uid := r.URL.Query().Get("userid")
+	n := r.URL.Query().Get("n")
 
-		// convert to numerical values
-		uid64, _ := strconv.ParseInt(uid, 10, 64)
-		n32, _ := strconv.Atoi(n)
-		fts, _ := time.Parse("2006-01-02", start)
-		fte, _ := time.Parse("2006-01-02", end)
-		// format date to epoch timestamp
-		startu := fts.Unix()
-		endu := fte.Unix()
+	// convert to numerical values
+	n32, _ := strconv.Atoi(n)
+	fts, _ := time.Parse("2006-01-02", start)
+	fte, _ := time.Parse("2006-01-02", end)
+	// format date to epoch timestamp
+	startu := fts.Unix()
+	endu := fte.Unix()
+	rs := query3(uid, int(startu), int(endu), n32)
 
-		rs := query3(startu, endu, uid64, n32)
-		body := fmt.Sprintf("%s%s", responseHeader, rs)
-		w.Header().Set("Content-Type", "text/plain;charset=utf-8")
-		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
-		io.WriteString(w, body)
-	*/
+	body := fmt.Sprintf("%s%s", responseHeader, rs)
+	w.Header().Set("Content-Type", "text/plain;charset=utf-8")
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	io.WriteString(w, body)
 }
 
-func query2(uid int64, timestamp int64) string {
-	tb := uidTable(uid)
-	q := fmt.Sprint("select tid, score, text from ", tb, " where uid = ? and time = ?")
-	rows, err := db.Query(q, uid, timestamp)
-	if err != nil {
-		panic(err.Error())
-	}
-	defer rows.Close()
-	var tid int64
-	var score int
-	var text string
+func q4Handler(w http.ResponseWriter, r *http.Request) {
+	// Get parameters
+	hashtag := r.URL.Query().Get("hashtag")
+	n := r.URL.Query().Get("n")
+
+	// convert to numerical values
+	n32, _ := strconv.Atoi(n)
+	// format date to epoch timestamp
+	rs := query4(hashtag, n32)
+
+	body := fmt.Sprintf("%s%s", responseHeader, rs)
+	w.Header().Set("Content-Type", "text/plain;charset=utf-8")
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	io.WriteString(w, body)
+}
+
+func query2(uid string, timestamp string) string {
+	var content string
 	var buffer bytes.Buffer
-	// tid, score, text
-	for rows.Next() {
-		if err := rows.Scan(&tid, &score, &text); err != nil {
-			panic(err.Error())
-		}
-		buffer.WriteString(unescape(fmt.Sprintf("%d:%d:%s\n", tid, score, text)))
+	stmt := getQueryStmt("2", uid)
+	err := stmt.QueryRow(uid + "," + timestamp).Scan(&content)
+	if err != nil {
+		return ""
 	}
-	if err := rows.Err(); err != nil {
-		panic(err.Error())
-	}
+	rs := strings.Replace(content, ",", ":", 2)
+	buffer.WriteString(unescape(rs) + "\n")
 	return buffer.String()
 }
 
@@ -135,15 +195,105 @@ func hash(s string) uint32 {
 	return h.Sum32()
 }
 
-func uidTable(uid int64) string {
+func getQueryStmt(prefix string, uid string) *sql.Stmt {
 	// the data set we get is ordered by uid and is string comparison
-	uids := strconv.FormatInt(uid, 10)
-	i := hash(uids)%10 + 1
-	return utable[i]
+	var i int
+	if prefix == "4" {
+		i = (int)(hash(uid)%3 + 1)
+	} else if prefix == "3" {
+		i = (int)(hash(uid)%6 + 1)
+	} else {
+		i = (int)(hash(uid)%10 + 1)
+	}
+	return qtable[prefix+strconv.Itoa(i)]
 }
 
-func query3(start int64, end int64, uid int64, n int) string {
-	return ""
+func query3(uid string, start int, end int, limit int) string {
+	var contents string
+	stmt := getQueryStmt("3", uid)
+	uid64, _ := strconv.ParseInt(uid, 10, 64)
+	err := stmt.QueryRow(uid64).Scan(&contents)
+	if err != nil {
+		return ""
+	}
+	var buffer bytes.Buffer
+	var responses []Q3Response
+
+	buffer.WriteString("Positive Tweets\n")
+	// timestamp, score, tid, text
+	response := Q3Response{}
+	tweets := strings.Split(contents, "[####&&&&]")
+
+	for idx := range tweets {
+		fields := strings.Split(tweets[idx], "(@@@@****)")
+		timef, _ := strconv.ParseFloat(fields[1], 64)
+		timei := int(timef)
+		if timei >= start && timei <= end {
+			response.Timestamp = timei
+			response.Score, _ = strconv.Atoi(fields[3])
+			response.TweetId, _ = strconv.ParseInt(fields[0], 10, 64)
+			response.Text = fields[2]
+			responses = append(responses, response)
+		}
+	}
+
+	sort.Sort(PNTweets(responses))
+
+	var pcount, ncount int
+	pcount = 0
+	ncount = 0
+	var negs []Q3Response
+	for idx := range responses {
+		if responses[idx].Score > 0 && pcount < limit {
+			buffer.WriteString(responses[idx].String())
+			pcount++
+		}
+		if responses[idx].Score < 0 && ncount < limit {
+			negs = append(negs, responses[idx])
+			ncount++
+		}
+		if pcount >= limit && ncount >= limit {
+			break
+		}
+	}
+	buffer.WriteString("\nNegative Tweets\n")
+	for idx := range negs {
+		buffer.WriteString(negs[idx].String())
+	}
+	return buffer.String()
+}
+
+func query4(hashtag string, limit int) string {
+	stmt := getQueryStmt("4", hashtag)
+
+	var buffer bytes.Buffer
+	var responses []Q4Response
+	var content string
+	err := stmt.QueryRow(hashtag).Scan(&content)
+	if err != nil {
+		return ""
+	}
+	tweets := strings.SplitN(content, "asgdhjbf673bvsalfjoq3ng", -1)
+
+	for idx := range tweets {
+		resp := Q4Response{}
+		cols := strings.SplitN(tweets[idx], ":", 3)
+		tsi, _ := time.Parse("2006-01-02", cols[0])
+		resp.Timestamp = int(tsi.Unix())
+		resp.Count, _ = strconv.Atoi(cols[1])
+		resp.Content = cols[2]
+		responses = append(responses, resp)
+	}
+	sort.Sort(HTTweets(responses))
+
+	for idx := range responses {
+		if idx < limit {
+			buffer.WriteString(responses[idx].String())
+		} else {
+			break
+		}
+	}
+	return buffer.String()
 }
 
 func unescape(line string) string {
@@ -202,6 +352,8 @@ func decipher(message string, key string) string {
 
 func getDbConn() *sql.DB {
 	db, err := sql.Open("mysql", "root:@/purrito")
+	db.SetMaxOpenConns(100)
+	db.SetMaxIdleConns(100)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -209,6 +361,8 @@ func getDbConn() *sql.DB {
 }
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	initConfig()
 	responseHeader = fmt.Sprintf("%s,%s\n", config.TeamId, config.TeamAwsAccountId)
 
@@ -216,26 +370,24 @@ func main() {
 	db = getDbConn()
 	defer db.Close()
 
-	utable = make(map[uint32]string)
-	utable[0] = "tweets_q2_1"
-	utable[1] = "tweets_q2_1"
-	utable[2] = "tweets_q2_2"
-	utable[3] = "tweets_q2_3"
-	utable[4] = "tweets_q2_4"
-	utable[5] = "tweets_q2_5"
-	utable[6] = "tweets_q2_6"
-	utable[7] = "tweets_q2_7"
-	utable[8] = "tweets_q2_8"
-	utable[9] = "tweets_q2_9"
-	utable[10] = "tweets_q2_10"
-
-	if dbErr != nil {
-		fmt.Println("error 0")
-		panic(dbErr.Error())
+	qtable = make(map[string]*sql.Stmt)
+	prefix2 := "2"
+	prefix3 := "3"
+	prefix4 := "4"
+	for i := 1; i < 11; i++ {
+		qtable[prefix2+strconv.Itoa(i)], _ = db.Prepare("select tidst from tweets_q2_" + strconv.Itoa(i) + " where uidt = ? limit 1")
 	}
+	for i := 1; i < 7; i++ {
+		qtable[prefix3+strconv.Itoa(i)], _ = db.Prepare("select content from tweets_q3_" + strconv.Itoa(i) + " where uid = ? limit 1")
+	}
+	qtable[prefix4+"1"], _ = db.Prepare("select content from tweets_q4_1 where tag = ? limit 1")
+	qtable[prefix4+"2"], _ = db.Prepare("select content from tweets_q4_2 where tag = ? limit 1")
+	qtable[prefix4+"3"], _ = db.Prepare("select content from tweets_q4_3 where tag = ? limit 1")
+
 	http.HandleFunc("/index.html", index)
 	http.HandleFunc("/q1", q1Handler)
 	http.HandleFunc("/q2", q2Handler)
 	http.HandleFunc("/q3", q3Handler)
+	http.HandleFunc("/q4", q4Handler)
 	http.ListenAndServe(fmt.Sprintf(":%d", config.HttpPort), nil)
 }

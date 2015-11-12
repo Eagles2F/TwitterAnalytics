@@ -1,8 +1,7 @@
 package main
 
 import (
-	"flag"
-	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -12,6 +11,8 @@ type Prox struct {
 	target *url.URL
 	proxy  *httputil.ReverseProxy
 }
+
+var hosts map[int]*Prox
 
 func (p *Prox) New(target string) {
 	url, _ := url.Parse(target)
@@ -23,26 +24,31 @@ func (p *Prox) handle(w http.ResponseWriter, r *http.Request) {
 	p.proxy.ServeHTTP(w, r)
 }
 
+func rrhandler(w http.ResponseWriter, r *http.Request) {
+	loc := rand.Intn(3) + 1
+	hosts[loc].proxy.ServeHTTP(w, r)
+}
+
 func main() {
-	const (
-		defaultPort        = ":80"
-		defaultPortUsage   = "default server port, ':80', ':80'..."
-		defaultTarget      = "http://ec2-54-85-196-129.compute-1.amazonaws.com/"
-		defaultTargetUsage = "default redirect url, 'http://ec2-54-85-196-129.compute-1.amazonaws.com/'"
-	)
+	hosts = make(map[int]*Prox)
 
-	// flags
-	port := flag.String("port", defaultPort, defaultPortUsage)
-	url := flag.String("url", defaultTarget, defaultTargetUsage)
+	url1 := ""
+	proxy1 := &Prox{}
+	proxy1.New(url1)
+	hosts[1] = proxy1
 
-	flag.Parse()
+	url2 := ""
+	proxy2 := &Prox{}
+	proxy2.New(url2)
+	hosts[2] = proxy2
 
-	fmt.Println("server will run on : %s", *port)
-	fmt.Println("redirecting to :%s", *url)
+	url3 := ""
+	proxy3 := &Prox{}
+	proxy3.New(url3)
+	hosts[3] = proxy3
 
-	proxy := &Prox{}
-	proxy.New(*url)
-	http.HandleFunc("/index.html", proxy.handle)
+	http.HandleFunc("/q1", rrhandler)
+	http.HandleFunc("/q2", rrhandler)
 
-	http.ListenAndServe(*port, nil)
+	http.ListenAndServe("80", nil)
 }

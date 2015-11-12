@@ -1,10 +1,42 @@
-create table tweets_q3 (
-  tid BIGINT NOT NULL, 
+create table tweets_q3_1 (
   uid BIGINT NOT NULL, 
-  time BIGINT NOT NULL, 
-  score INT NOT NULL, 
-  text VARCHAR(300) NOT NULL DEFAULT ''
+  content TEXT NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARACTER SET=utf8mb4;
 
-alter table tweets_q3 add index (uid, time, score);
+alter table tweets_q3_1 add index (uid);
+
+create table tweets_q3_2 (
+  uid BIGINT NOT NULL, 
+  content TEXT NOT NULL 
+) ENGINE=MyISAM DEFAULT CHARACTER SET=utf8mb4;
+
+alter table tweets_q3_2 add index (uid);
+
+create table tweets_q3_3 (
+  uid BIGINT NOT NULL, 
+  content TEXT NOT NULL 
+) ENGINE=MyISAM DEFAULT CHARACTER SET=utf8mb4;
+
+alter table tweets_q3_3 add index (uid);
+
+create table tweets_q3_4 (
+  uid BIGINT NOT NULL, 
+  content TEXT NOT NULL 
+) ENGINE=MyISAM DEFAULT CHARACTER SET=utf8mb4;
+
+alter table tweets_q3_4 add index (uid);
+
+create table tweets_q3_5 (
+  uid BIGINT NOT NULL, 
+  content TEXT NOT NULL 
+) ENGINE=MyISAM DEFAULT CHARACTER SET=utf8mb4;
+
+alter table tweets_q3_5 add index (uid);
+
+create table tweets_q3_6 (
+  uid BIGINT NOT NULL, 
+  content TEXT NOT NULL 
+) ENGINE=MyISAM DEFAULT CHARACTER SET=utf8mb4;
+
+alter table tweets_q3_6 add index (uid);
 

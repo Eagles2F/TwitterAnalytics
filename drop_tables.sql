@@ -1,0 +1,10 @@
+drop table tweets_q2_1;
+drop table tweets_q2_2;
+drop table tweets_q2_3;
+drop table tweets_q2_4;
+drop table tweets_q2_5;
+drop table tweets_q2_6;
+drop table tweets_q2_7;
+drop table tweets_q2_8;
+drop table tweets_q2_9;
+drop table tweets_q2_10;

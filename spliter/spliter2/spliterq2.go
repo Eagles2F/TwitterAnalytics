@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"hash/fnv"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -34,13 +36,23 @@ func split(path string) {
 	defer r.Close()
 
 	scanner := bufio.NewScanner(r)
+
+	var buffer bytes.Buffer
+	// uid timestamp (float) tid text score
 	for scanner.Scan() {
 		l := scanner.Text()
 		vars := strings.Split(l, "\t")
 		loc := hash(vars[0])%10 + 1
+
+		it, _ := strconv.ParseFloat(vars[1], 32)
+		st := strconv.Itoa((int)(it))
+		buffer.WriteString(vars[0] + "," + st + "\t")
+
+		// tid, score, text
+		buffer.WriteString(vars[2] + "," + vars[4] + "," + vars[3] + "\n")
 		w := wmap[loc]
-		w.WriteString(l)
-		w.WriteString("\n")
+		w.WriteString(buffer.String())
+		buffer.Reset()
 	}
 }
 
@@ -81,7 +93,7 @@ func main() {
 	defer w9.Close()
 	defer w10.Close()
 
-	filepath.Walk("./files", func(path string, f os.FileInfo, err error) error {
+	filepath.Walk("./file2", func(path string, f os.FileInfo, err error) error {
 		if !f.IsDir() {
 			split(path)
 			fmt.Println("finished ", path)

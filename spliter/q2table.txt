@@ -1,0 +1,5 @@
+uid+timestamp
+32+10+1 = 44
+tid+text+score
+
+
