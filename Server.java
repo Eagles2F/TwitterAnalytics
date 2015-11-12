@@ -188,6 +188,23 @@ public class Server extends Verticle {
             Result rr =table3.get(g);
 
             String tweets = Bytes.toString(rr.getValue(Bytes.toBytes("a"),Bytes.toBytes("text")));
+            if (tweets == null) {
+              sb.append("Positive Tweets\n\n");
+              sb.append("Negative Tweets\n");
+              int length = 0;
+              response = sb.toString();
+              try {
+                  length = response.getBytes("utf-8").length;
+              } catch (Exception e) {
+                  e.printStackTrace();
+              }
+              //System.out.println(response);
+
+              req.response().putHeader("Content-Type", "text/plain;charset=utf-8");
+              req.response().putHeader("Content-Length", String.valueOf(length));
+              req.response().end(response, "utf-8");
+              return;
+            }
             String[] tweet_list = tweets.split("\\[####&&&&\\]");
             StringBuilder pos = new StringBuilder();
             ArrayList posList = new ArrayList();
