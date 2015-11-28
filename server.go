@@ -40,9 +40,13 @@ type Q4Response struct {
 	Content   string
 }
 
+// positive/negative tweets
 type PNTweets []Q3Response
+
+// hashtag tweets
 type HTTweets []Q4Response
 
+// for comparison
 func (t PNTweets) Len() int      { return len(t) }
 func (t PNTweets) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
 func (t PNTweets) Less(i, j int) bool {
@@ -53,6 +57,7 @@ func (t PNTweets) Less(i, j int) bool {
 	}
 }
 
+// for comparison
 func (t HTTweets) Len() int      { return len(t) }
 func (t HTTweets) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
 func (t HTTweets) Less(i, j int) bool {
@@ -68,7 +73,6 @@ var (
 	db             *sql.DB
 	qtable         map[string]*sql.Stmt
 	responseHeader string
-	itags          map[string]bool
 )
 
 func initConfig() {
@@ -389,5 +393,6 @@ func main() {
 	http.HandleFunc("/q2", q2Handler)
 	http.HandleFunc("/q3", q3Handler)
 	http.HandleFunc("/q4", q4Handler)
+	http.HandleFunc("/q5", q5Handler)
 	http.ListenAndServe(fmt.Sprintf(":%d", config.HttpPort), nil)
 }
