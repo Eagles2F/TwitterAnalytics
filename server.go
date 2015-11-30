@@ -180,6 +180,18 @@ func q4Handler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, body)
 }
 
+func q5Handler(w http.ResponseWriter, r *http.Request) {
+	// Get parameters
+	min_uid := r.URL.Query().Get("userid_min")
+	max_uid := r.URL.Query().Get("userid_max")
+
+	rs := query5(min_uid, max_uid)
+	body := fmt.Sprintf("%s%s", responseHeader, rs)
+	w.Header().Set("Content-Type", "text/plain;charset=utf-8")
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	io.WriteString(w, body)
+}
+
 func query2(uid string, timestamp string) string {
 	var content string
 	var buffer bytes.Buffer
@@ -191,25 +203,6 @@ func query2(uid string, timestamp string) string {
 	rs := strings.Replace(content, ",", ":", 2)
 	buffer.WriteString(unescape(rs) + "\n")
 	return buffer.String()
-}
-
-func hash(s string) uint32 {
-	h := fnv.New32a()
-	h.Write([]byte(s))
-	return h.Sum32()
-}
-
-func getQueryStmt(prefix string, uid string) *sql.Stmt {
-	// the data set we get is ordered by uid and is string comparison
-	var i int
-	if prefix == "4" {
-		i = (int)(hash(uid)%3 + 1)
-	} else if prefix == "3" {
-		i = (int)(hash(uid)%6 + 1)
-	} else {
-		i = (int)(hash(uid)%10 + 1)
-	}
-	return qtable[prefix+strconv.Itoa(i)]
 }
 
 func query3(uid string, start int, end int, limit int) string {
@@ -300,6 +293,50 @@ func query4(hashtag string, limit int) string {
 	return buffer.String()
 }
 
+func query5(min_uid string, max_uid string) string {
+	// convert to numerical values
+	id_min_64, _ := strconv.ParseInt(min_uid, 10, 64)
+	id_max_64, _ := strconv.ParseInt(max_uid, 10, 64)
+
+	var content string
+	total_count := 0
+
+	min_search := true
+	for min_search {
+		min_uid = strconv.FormatInt(id_min_64, 10)
+		stmt := getQueryStmt("5", min_uid)
+
+		err := stmt.QueryRow(id_min_64).Scan(&content)
+		if err != nil {
+			fmt.Println("first err ", err, " id_min_64, ", id_min_64, ", max_64 ", id_max_64)
+			id_min_64 += 1
+		} else {
+			min_search = false
+		}
+	}
+	min_counts := strings.Split(content, ",")
+
+	max_search := true
+	for max_search {
+		max_uid = strconv.FormatInt(id_max_64, 10)
+		stmt := getQueryStmt("5", max_uid)
+
+		err := stmt.QueryRow(id_max_64).Scan(&content)
+		if err != nil {
+			fmt.Println("second err ", err, " id_min_64, ", id_min_64, ", max_64 ", id_max_64)
+			id_max_64 -= 1
+		} else {
+			max_search = false
+		}
+	}
+	max_counts := strings.Split(content, ",")
+	max_elapsed_count, _ := strconv.Atoi(max_counts[1])
+	min_elapsed_count, _ := strconv.Atoi(min_counts[1])
+	min_uid_count, _ := strconv.Atoi(min_counts[0])
+	total_count = max_elapsed_count - min_elapsed_count + min_uid_count
+	return strconv.Itoa(total_count) + "\n"
+}
+
 func unescape(line string) string {
 	line = strings.Replace(line, "\\n", "\n", -1)
 	line = strings.Replace(line, "\\r", "\r", -1)
@@ -309,6 +346,27 @@ func unescape(line string) string {
 	line = strings.Replace(line, "\\\"", "\"", -1)
 	line = strings.Replace(line, "\\\\", "\\", -1)
 	return line
+}
+
+func hash(s string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
+}
+
+func getQueryStmt(prefix string, key string) *sql.Stmt {
+	// the data set we get is ordered by uid and is string comparison
+	var i int
+	if prefix == "5" {
+		i = (int)(hash(key)%4 + 1)
+	} else if prefix == "4" {
+		i = (int)(hash(key)%3 + 1)
+	} else if prefix == "3" {
+		i = (int)(hash(key)%6 + 1)
+	} else {
+		i = (int)(hash(key)%10 + 1)
+	}
+	return qtable[prefix+strconv.Itoa(i)]
 }
 
 func decipher(message string, key string) string {
@@ -378,15 +436,19 @@ func main() {
 	prefix2 := "2"
 	prefix3 := "3"
 	prefix4 := "4"
+	prefix5 := "5"
 	for i := 1; i < 11; i++ {
 		qtable[prefix2+strconv.Itoa(i)], _ = db.Prepare("select tidst from tweets_q2_" + strconv.Itoa(i) + " where uidt = ? limit 1")
 	}
 	for i := 1; i < 7; i++ {
 		qtable[prefix3+strconv.Itoa(i)], _ = db.Prepare("select content from tweets_q3_" + strconv.Itoa(i) + " where uid = ? limit 1")
 	}
-	qtable[prefix4+"1"], _ = db.Prepare("select content from tweets_q4_1 where tag = ? limit 1")
-	qtable[prefix4+"2"], _ = db.Prepare("select content from tweets_q4_2 where tag = ? limit 1")
-	qtable[prefix4+"3"], _ = db.Prepare("select content from tweets_q4_3 where tag = ? limit 1")
+	for i := 1; i < 4; i++ {
+		qtable[prefix4+strconv.Itoa(i)], _ = db.Prepare("select content from tweets_q4_" + strconv.Itoa(i) + " where tag = ? limit 1")
+	}
+	for i := 1; i < 5; i++ {
+		qtable[prefix5+strconv.Itoa(i)], _ = db.Prepare("select counts from tweets_q5_" + strconv.Itoa(i) + " where uid = ? limit 1")
+	}
 
 	http.HandleFunc("/index.html", index)
 	http.HandleFunc("/q1", q1Handler)
