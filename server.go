@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-	"container/heap"
 )
 
 type Config struct {
@@ -46,17 +45,16 @@ type Q6Operation struct {
 	tweetid string
 	tag string
 	operation_type string //a for appending, r for reading
-	index int // The index of the item in the heap.
 }
 
 type Q6Transaction struct {
 	start_arrived bool
 	end_arrived bool
-	opts Q6Queue
+	opts []Q6Operation
 }
 
 //priority queue for Q6Operation
-type Q6Queue []*Q6Operation
+type Q6Queue []Q6Operation
 
 func (pq Q6Queue) Len() int { return len(pq) }
 
@@ -66,28 +64,6 @@ func (pq Q6Queue) Less(i, j int) bool {
 
 func (pq Q6Queue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
-	pq[i].index = i
-	pq[j].index = j
-}
-
-func (pq *Q6Queue) Push(x interface{}) {
-	n := len(*pq)
-	item := x.(*Q6Operation)
-	item.index = n
-	*pq = append(*pq, item)
-}
-
-func (pq *Q6Queue) Pop() interface{} {
-	old := *pq
-	n := len(old)
-	item := old[n-1]
-	item.index = -1 // for safety
-	*pq = old[0 : n-1]
-	return item
-}
-
-func (pq *Q6Queue) Peek() *Q6Operation  {
-	return (*pq)[0]
 }
 
 // end of priority queue section
@@ -265,9 +241,7 @@ func q6Handler(w http.ResponseWriter, r *http.Request) {
 	tid32, _ := strconv.Atoi(tid)
 	seq32, _ := strconv.Atoi(seq)
 	if _, ok:= transactionMap[tid32]; !ok {
-		pq := make(Q6Queue, 5, 5)
-		transactionMap[tid32]= &Q6Transaction{opts:pq}
-		heap.Init(&pq)
+		transactionMap[tid32]= &Q6Transaction{}
 	}
 
 	var rs string
@@ -276,27 +250,29 @@ func q6Handler(w http.ResponseWriter, r *http.Request) {
 		transactionMap[tid32].start_arrived = true
 		rs = "0\n"
 	} else if opt == "a" {
-		operation := &Q6Operation{seq:seq32, tweetid:tweetid, tag:tag, operation_type:"a"}
-		heap.Push(&transactionMap[tid32].opts, operation)
+		operation := Q6Operation{seq:seq32, tweetid:tweetid, tag:tag, operation_type:"a"}
+		transactionMap[tid32].opts = append(transactionMap[tid32].opts, operation)
+		sort.Sort(Q6Queue(transactionMap[tid32].opts))
 		//write should be blocking until it is the first one in the queue
 		//then proceed the requests by the order of seq number
-		for (&transactionMap[tid32].opts).Peek().seq != seq32 {
+		for transactionMap[tid32].opts[0].seq != seq32 {
 			time.Sleep(time.Millisecond)
 		}
 		//do the write on a goroutine
 		go query6write(tweetid, tag)
 		rs = fmt.Sprintf("%s\n", tag)
-		heap.Pop(&transactionMap[tid32].opts)
+		transactionMap[tid32].opts = transactionMap[tid32].opts[1:]
 	} else if opt  == "r" {
 		operation := Q6Operation{seq:seq32, tweetid:tweetid, operation_type:"r"}
-		heap.Push(&transactionMap[tid32].opts, operation)
+		transactionMap[tid32].opts = append(transactionMap[tid32].opts, operation)
+		sort.Sort(Q6Queue(transactionMap[tid32].opts))
 		//read should be blocking until it is the first one in the queue
 		//then proceed the requests by the order of seq number
-		for(&transactionMap[tid32].opts).Peek().seq != seq32 {
+		for transactionMap[tid32].opts[0].seq != seq32 {
 			time.Sleep(time.Millisecond)
 		}
-		rs = query6read(tweetid) //should be the result of query
-		heap.Pop(&transactionMap[tid32].opts)
+		rs = fmt.Sprintf("%s\n", query6read(tweetid))//should be the result of query
+		transactionMap[tid32].opts = transactionMap[tid32].opts[1:]
 	} else if opt == "e" {
 		transactionMap[tid32].end_arrived = true
 		rs = "0\n"
@@ -454,7 +430,11 @@ func query5(min_uid string, max_uid string) string {
 }
 
 func query6read(tid string) string {
+	//tid_64, _ := strconv.ParseInt(tid, 10, 64)
 	stmt := getQueryStmt("6read", tid)
+	if stmt == nil {
+		fmt.Printf("stmt nil")
+	}
 	var content string
 	err := stmt.QueryRow(tid).Scan(&content)
 	if err != nil {
@@ -581,7 +561,7 @@ func main() {
 		qtable[prefix5+strconv.Itoa(i)], _ = db.Prepare("select counts from tweets_q5_" + strconv.Itoa(i) + " where uid = ? limit 1")
 	}
 	for i := 1; i < 11; i++ {
-		qtable[prefix6read+strconv.Itoa(i)], _ = db.Prepare("select content from tweets_q6_" + strconv.Itoa(i) + " where tid = ? limit 1")
+		qtable[prefix6read+strconv.Itoa(i)], _ = db.Prepare("select tweet from tweets_q6_" + strconv.Itoa(i) + " where tid = ? limit 1")
 	}
 
 	//initialize the map
