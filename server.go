@@ -40,6 +40,57 @@ type Q4Response struct {
 	Content   string
 }
 
+type Q6Operation struct {
+	seq int
+	tweetid string
+	tag string
+	operation_type string //a for appending, r for reading
+	index int // The index of the item in the heap.
+}
+
+type Q6Transaction struct {
+	start_arrived bool
+	end_arrvied bool
+	opts Q6Queue
+}
+
+//priority queue for Q6Operation
+type Q6Queue []*Q6Operation
+
+func (pq Q6Queue) Len() int { return len(pq) }
+
+func (pq Q6Queue) Less(i, j int) bool {
+	return pq[i].seq < pq[j].seq
+}
+
+func (pq Q6Queue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	pq[i].index = i
+	pq[j].index = j
+}
+
+func (pq *Q6Queue) Push(x interface{}) {
+	n := len(*pq)
+	item := x.(*Item)
+	item.index = n
+	*pq = append(*pq, item)
+}
+
+func (pq *Q6Queue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	item.index = -1 // for safety
+	*pq = old[0 : n-1]
+	return item
+}
+
+func (pq *Q6Queue) Peek() interface{}  {
+	return (*pq)[0]
+}
+
+// end of priority queue section
+
 // positive/negative tweets
 type PNTweets []Q3Response
 
@@ -73,6 +124,7 @@ var (
 	db             *sql.DB
 	qtable         map[string]*sql.Stmt
 	responseHeader string
+	transactionMap map[int]Q6Transaction
 )
 
 func initConfig() {
@@ -186,6 +238,67 @@ func q5Handler(w http.ResponseWriter, r *http.Request) {
 	max_uid := r.URL.Query().Get("userid_max")
 
 	rs := query5(min_uid, max_uid)
+	body := fmt.Sprintf("%s%s", responseHeader, rs)
+	w.Header().Set("Content-Type", "text/plain;charset=utf-8")
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	io.WriteString(w, body)
+}
+
+func q6handler(w http.ResponseWriter, r *http.Request) {
+	// Get parameters
+	opt := r.URL.Query().Get("opt") //operation type
+	tid := r.URL.Query().Get("tid") //transaction ID
+	var tag string
+	var seq string
+	var tweeid string
+	if opt == "a" {
+		seq = r.URL.Query().Get("seq") //sequence number
+		tweetid = r.URL.Query().Get("tweetid") //tweet ID that you need to append to
+		tag = r.URL.Query().Get("tag") //the string that you will append at the end of the tweet text
+	} else if opt == "r" {
+		seq = r.URL.Query().Get("seq") //sequence number
+		tweetid = r.URL.Query().Get("tweetid") //tweet ID that you need to append to
+	}
+
+	//collect transactions with a Map from transaction ID to transaction
+	if _, ok:= transactionMap[strconv.Atoi(tid)]; !ok {
+		pq := make(Q6Queue, 5, 5)
+		transactionMap[strconv.Atoi(tid)]= Q6Transaction{opts:pq}
+		heap.Init(&pq)
+	}
+
+	var rs string
+
+	if opt == "s" {
+		transactionMap[strconv.Atoi(tid)].start_arrived = true
+		rs = "0\n"
+	} else if opt == "a" {
+		operation := &Q6Operation{seq:strconv.Atoi(seq), tweetid:tweetid, tag:tag, operation_type:"a"}
+		heap.Push(&transactionMap[strconv.Atoi(tid)].opts, operation)
+		//write should be blocking until it is the first one in the queue
+		//then proceed the requests by the order of seq number
+		for heap.Peek(&transactionMap[strconv.Atoi(tid)].opts).seq != strconv.Atoi(seq) {
+			time.Sleep(time.Millisecond)
+		}
+		//do the write on a goroutine
+		go query6write(tweetid, tag)
+		rs = fmt.Sprintf("%s\n", tag)
+		heap.Pop(&transactionMap[strconv.Atoi(tid)].opts)
+	} else if opt  == "r" {
+		operation := Q6Operation{seq:strconv.Atoi(seq), tweetid:tweetid, operation_type:"r"}
+		heap.Push(&transactionMap[strconv.Atoi(tid)].opts, operation)
+		//read should be blocking until it is the first one in the queue
+		//then proceed the requests by the order of seq number
+		for heap.Peek(&transactionMap[strconv.Atoi(tid)].opts).seq != strconv.Atoi(seq) {
+			time.Sleep(time.Millisecond)
+		}
+		rs = query6read(tweetid) //should be the result of query
+		heap.Pop(&transactionMap[strconv.Atoi(tid)].opts)
+	} else if opt == "e" {
+		transactionMap[strconv.Atoi(tid)].end_arrived = true
+		rs = "0\n"
+	}
+
 	body := fmt.Sprintf("%s%s", responseHeader, rs)
 	w.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
@@ -337,6 +450,14 @@ func query5(min_uid string, max_uid string) string {
 	return strconv.Itoa(total_count) + "\n"
 }
 
+func query6read(tweetid string) string {
+	return ""
+}
+
+func query6write(tweetid string, tag string) {
+
+}
+
 func unescape(line string) string {
 	line = strings.Replace(line, "\\n", "\n", -1)
 	line = strings.Replace(line, "\\r", "\r", -1)
@@ -450,11 +571,15 @@ func main() {
 		qtable[prefix5+strconv.Itoa(i)], _ = db.Prepare("select counts from tweets_q5_" + strconv.Itoa(i) + " where uid = ? limit 1")
 	}
 
+	//initialize the map
+	transactionMap = make(map[int]Q6Transaction)
+
 	http.HandleFunc("/index.html", index)
 	http.HandleFunc("/q1", q1Handler)
 	http.HandleFunc("/q2", q2Handler)
 	http.HandleFunc("/q3", q3Handler)
 	http.HandleFunc("/q4", q4Handler)
 	http.HandleFunc("/q5", q5Handler)
+	http.HanldeFunc("/q6", q6Handler)
 	http.ListenAndServe(fmt.Sprintf(":%d", config.HttpPort), nil)
 }
