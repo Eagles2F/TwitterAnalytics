@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+	"sync"
 )
 
 type Config struct {
@@ -102,6 +103,9 @@ var (
 	qtable         map[string]*sql.Stmt
 	responseHeader string
 	transactionMap map[int]*Q6Transaction
+	mutex *sync.Mutex
+	writeLogMap    map[string]string
+	writeLock *sync.Mutex
 )
 
 func initConfig() {
@@ -240,41 +244,76 @@ func q6Handler(w http.ResponseWriter, r *http.Request) {
 	//collect transactions with a Map from transaction ID to transaction
 	tid32, _ := strconv.Atoi(tid)
 	seq32, _ := strconv.Atoi(seq)
+
+	mutex.Lock()
 	if _, ok:= transactionMap[tid32]; !ok {
 		transactionMap[tid32]= &Q6Transaction{}
 	}
+	mutex.Unlock()
 
 	var rs string
 
 	if opt == "s" {
+		mutex.Lock()
 		transactionMap[tid32].start_arrived = true
+		mutex.Unlock()
 		rs = "0\n"
 	} else if opt == "a" {
 		operation := Q6Operation{seq:seq32, tweetid:tweetid, tag:tag, operation_type:"a"}
+		mutex.Lock()
+
 		transactionMap[tid32].opts = append(transactionMap[tid32].opts, operation)
 		sort.Sort(Q6Queue(transactionMap[tid32].opts))
+
+		mutex.Unlock()
 		//write should be blocking until it is the first one in the queue
 		//then proceed the requests by the order of seq number
-		for transactionMap[tid32].opts[0].seq != seq32 {
+		var s int
+		mutex.Lock()
+		s = transactionMap[tid32].opts[0].seq
+		mutex.Unlock()
+		for  s != seq32 {
 			time.Sleep(time.Millisecond)
+			mutex.Lock()
+			s = transactionMap[tid32].opts[0].seq
+			mutex.Unlock()
 		}
 		//do the write on a goroutine
 		go query6write(tweetid, tag)
 		rs = fmt.Sprintf("%s\n", tag)
+		mutex.Lock()
 		transactionMap[tid32].opts = transactionMap[tid32].opts[1:]
+		mutex.Unlock()
 	} else if opt  == "r" {
 		operation := Q6Operation{seq:seq32, tweetid:tweetid, operation_type:"r"}
+		mutex.Lock()
+
 		transactionMap[tid32].opts = append(transactionMap[tid32].opts, operation)
 		sort.Sort(Q6Queue(transactionMap[tid32].opts))
+
+		mutex.Unlock()
 		//read should be blocking until it is the first one in the queue
 		//then proceed the requests by the order of seq number
-		for transactionMap[tid32].opts[0].seq != seq32 {
+
+		var s int
+		mutex.Lock()
+		s = transactionMap[tid32].opts[0].seq
+		mutex.Unlock()
+		for  s != seq32 {
 			time.Sleep(time.Millisecond)
+			mutex.Lock()
+			s = transactionMap[tid32].opts[0].seq
+			mutex.Unlock()
 		}
+
 		rs = fmt.Sprintf("%s\n", query6read(tweetid))//should be the result of query
+		mutex.Lock()
 		transactionMap[tid32].opts = transactionMap[tid32].opts[1:]
+		mutex.Unlock()
 	} else if opt == "e" {
+		mutex.Lock()
 		transactionMap[tid32].end_arrived = true
+		mutex.Unlock()
 		rs = "0\n"
 	}
 
@@ -440,11 +479,21 @@ func query6read(tid string) string {
 	if err != nil {
 		return ""
 	}
+
+	writeLock.Lock()
+	if _, ok:= writeLogMap[tid]; ok {
+		 content = fmt.Sprintf("%s%s", content, writeLogMap[tid])
+	}
+	writeLock.Unlock()
+
 	return content
 }
 
 func query6write(tweetid string, tag string) {
 	//append to tag
+	writeLock.Lock()
+	writeLogMap[tweetid] = tag
+	writeLock.Unlock()
 }
 
 func unescape(line string) string {
@@ -538,9 +587,15 @@ func main() {
 	initConfig()
 	responseHeader = fmt.Sprintf("%s,%s\n", config.TeamId, config.TeamAwsAccountId)
 
+	mutex = &sync.Mutex{}
+
+	writeLock = &sync.Mutex{}
+
 	// shared database connection
 	db = getDbConn()
 	defer db.Close()
+
+	writeLogMap = make(map[string]string)
 
 	qtable = make(map[string]*sql.Stmt)
 	prefix2 := "2"
@@ -563,6 +618,7 @@ func main() {
 	for i := 1; i < 11; i++ {
 		qtable[prefix6read+strconv.Itoa(i)], _ = db.Prepare("select tweet from tweets_q6_" + strconv.Itoa(i) + " where tid = ? limit 1")
 	}
+
 
 	//initialize the map
 	transactionMap = make(map[int]*Q6Transaction)
