@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+	"container/heap"
 )
 
 type Config struct {
@@ -50,7 +51,7 @@ type Q6Operation struct {
 
 type Q6Transaction struct {
 	start_arrived bool
-	end_arrvied bool
+	end_arrived bool
 	opts Q6Queue
 }
 
@@ -71,7 +72,7 @@ func (pq Q6Queue) Swap(i, j int) {
 
 func (pq *Q6Queue) Push(x interface{}) {
 	n := len(*pq)
-	item := x.(*Item)
+	item := x.(*Q6Operation)
 	item.index = n
 	*pq = append(*pq, item)
 }
@@ -85,7 +86,7 @@ func (pq *Q6Queue) Pop() interface{} {
 	return item
 }
 
-func (pq *Q6Queue) Peek() interface{}  {
+func (pq *Q6Queue) Peek() *Q6Operation  {
 	return (*pq)[0]
 }
 
@@ -124,7 +125,7 @@ var (
 	db             *sql.DB
 	qtable         map[string]*sql.Stmt
 	responseHeader string
-	transactionMap map[int]Q6Transaction
+	transactionMap map[int]*Q6Transaction
 )
 
 func initConfig() {
@@ -244,13 +245,13 @@ func q5Handler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, body)
 }
 
-func q6handler(w http.ResponseWriter, r *http.Request) {
+func q6Handler(w http.ResponseWriter, r *http.Request) {
 	// Get parameters
 	opt := r.URL.Query().Get("opt") //operation type
 	tid := r.URL.Query().Get("tid") //transaction ID
 	var tag string
 	var seq string
-	var tweeid string
+	var tweetid string
 	if opt == "a" {
 		seq = r.URL.Query().Get("seq") //sequence number
 		tweetid = r.URL.Query().Get("tweetid") //tweet ID that you need to append to
@@ -261,41 +262,43 @@ func q6handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//collect transactions with a Map from transaction ID to transaction
-	if _, ok:= transactionMap[strconv.Atoi(tid)]; !ok {
+	tid32, _ := strconv.Atoi(tid)
+	seq32, _ := strconv.Atoi(seq)
+	if _, ok:= transactionMap[tid32]; !ok {
 		pq := make(Q6Queue, 5, 5)
-		transactionMap[strconv.Atoi(tid)]= Q6Transaction{opts:pq}
+		transactionMap[tid32]= &Q6Transaction{opts:pq}
 		heap.Init(&pq)
 	}
 
 	var rs string
 
 	if opt == "s" {
-		transactionMap[strconv.Atoi(tid)].start_arrived = true
+		transactionMap[tid32].start_arrived = true
 		rs = "0\n"
 	} else if opt == "a" {
-		operation := &Q6Operation{seq:strconv.Atoi(seq), tweetid:tweetid, tag:tag, operation_type:"a"}
-		heap.Push(&transactionMap[strconv.Atoi(tid)].opts, operation)
+		operation := &Q6Operation{seq:seq32, tweetid:tweetid, tag:tag, operation_type:"a"}
+		heap.Push(&transactionMap[tid32].opts, operation)
 		//write should be blocking until it is the first one in the queue
 		//then proceed the requests by the order of seq number
-		for heap.Peek(&transactionMap[strconv.Atoi(tid)].opts).seq != strconv.Atoi(seq) {
+		for (&transactionMap[tid32].opts).Peek().seq != seq32 {
 			time.Sleep(time.Millisecond)
 		}
 		//do the write on a goroutine
 		go query6write(tweetid, tag)
 		rs = fmt.Sprintf("%s\n", tag)
-		heap.Pop(&transactionMap[strconv.Atoi(tid)].opts)
+		heap.Pop(&transactionMap[tid32].opts)
 	} else if opt  == "r" {
-		operation := Q6Operation{seq:strconv.Atoi(seq), tweetid:tweetid, operation_type:"r"}
-		heap.Push(&transactionMap[strconv.Atoi(tid)].opts, operation)
+		operation := Q6Operation{seq:seq32, tweetid:tweetid, operation_type:"r"}
+		heap.Push(&transactionMap[tid32].opts, operation)
 		//read should be blocking until it is the first one in the queue
 		//then proceed the requests by the order of seq number
-		for heap.Peek(&transactionMap[strconv.Atoi(tid)].opts).seq != strconv.Atoi(seq) {
+		for(&transactionMap[tid32].opts).Peek().seq != seq32 {
 			time.Sleep(time.Millisecond)
 		}
 		rs = query6read(tweetid) //should be the result of query
-		heap.Pop(&transactionMap[strconv.Atoi(tid)].opts)
+		heap.Pop(&transactionMap[tid32].opts)
 	} else if opt == "e" {
-		transactionMap[strconv.Atoi(tid)].end_arrived = true
+		transactionMap[tid32].end_arrived = true
 		rs = "0\n"
 	}
 
@@ -450,12 +453,18 @@ func query5(min_uid string, max_uid string) string {
 	return strconv.Itoa(total_count) + "\n"
 }
 
-func query6read(tweetid string) string {
-	return ""
+func query6read(tid string) string {
+	stmt := getQueryStmt("6read", tid)
+	var content string
+	err := stmt.QueryRow(tid).Scan(&content)
+	if err != nil {
+		return ""
+	}
+	return content
 }
 
 func query6write(tweetid string, tag string) {
-
+	//append to tag
 }
 
 func unescape(line string) string {
@@ -558,6 +567,7 @@ func main() {
 	prefix3 := "3"
 	prefix4 := "4"
 	prefix5 := "5"
+	prefix6read := "6read"
 	for i := 1; i < 11; i++ {
 		qtable[prefix2+strconv.Itoa(i)], _ = db.Prepare("select tidst from tweets_q2_" + strconv.Itoa(i) + " where uidt = ? limit 1")
 	}
@@ -570,9 +580,12 @@ func main() {
 	for i := 1; i < 5; i++ {
 		qtable[prefix5+strconv.Itoa(i)], _ = db.Prepare("select counts from tweets_q5_" + strconv.Itoa(i) + " where uid = ? limit 1")
 	}
+	for i := 1; i < 11; i++ {
+		qtable[prefix6read+strconv.Itoa(i)], _ = db.Prepare("select content from tweets_q6_" + strconv.Itoa(i) + " where tid = ? limit 1")
+	}
 
 	//initialize the map
-	transactionMap = make(map[int]Q6Transaction)
+	transactionMap = make(map[int]*Q6Transaction)
 
 	http.HandleFunc("/index.html", index)
 	http.HandleFunc("/q1", q1Handler)
@@ -580,6 +593,6 @@ func main() {
 	http.HandleFunc("/q3", q3Handler)
 	http.HandleFunc("/q4", q4Handler)
 	http.HandleFunc("/q5", q5Handler)
-	http.HanldeFunc("/q6", q6Handler)
+	http.HandleFunc("/q6", q6Handler)
 	http.ListenAndServe(fmt.Sprintf(":%d", config.HttpPort), nil)
 }
