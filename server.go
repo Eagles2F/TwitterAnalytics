@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+	"sync"
 )
 
 type Config struct {
@@ -39,6 +40,34 @@ type Q4Response struct {
 	Timestamp int
 	Content   string
 }
+
+type Q6Operation struct {
+	seq int
+	tweetid string
+	tag string
+	operation_type string //a for appending, r for reading
+}
+
+type Q6Transaction struct {
+	start_arrived bool
+	end_arrived bool
+	opts []Q6Operation
+}
+
+//priority queue for Q6Operation
+type Q6Queue []Q6Operation
+
+func (pq Q6Queue) Len() int { return len(pq) }
+
+func (pq Q6Queue) Less(i, j int) bool {
+	return pq[i].seq < pq[j].seq
+}
+
+func (pq Q6Queue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+}
+
+// end of priority queue section
 
 // positive/negative tweets
 type PNTweets []Q3Response
@@ -73,6 +102,10 @@ var (
 	db             *sql.DB
 	qtable         map[string]*sql.Stmt
 	responseHeader string
+	transactionMap map[int]*Q6Transaction
+	mutex *sync.Mutex
+	writeLogMap    map[string]string
+	writeLock *sync.Mutex
 )
 
 func initConfig() {
@@ -186,6 +219,104 @@ func q5Handler(w http.ResponseWriter, r *http.Request) {
 	max_uid := r.URL.Query().Get("userid_max")
 
 	rs := query5(min_uid, max_uid)
+	body := fmt.Sprintf("%s%s", responseHeader, rs)
+	w.Header().Set("Content-Type", "text/plain;charset=utf-8")
+	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	io.WriteString(w, body)
+}
+
+func q6Handler(w http.ResponseWriter, r *http.Request) {
+	// Get parameters
+	opt := r.URL.Query().Get("opt") //operation type
+	tid := r.URL.Query().Get("tid") //transaction ID
+	var tag string
+	var seq string
+	var tweetid string
+	if opt == "a" {
+		seq = r.URL.Query().Get("seq") //sequence number
+		tweetid = r.URL.Query().Get("tweetid") //tweet ID that you need to append to
+		tag = r.URL.Query().Get("tag") //the string that you will append at the end of the tweet text
+	} else if opt == "r" {
+		seq = r.URL.Query().Get("seq") //sequence number
+		tweetid = r.URL.Query().Get("tweetid") //tweet ID that you need to append to
+	}
+
+	//collect transactions with a Map from transaction ID to transaction
+	tid32, _ := strconv.Atoi(tid)
+	seq32, _ := strconv.Atoi(seq)
+
+	mutex.Lock()
+	if _, ok:= transactionMap[tid32]; !ok {
+		transactionMap[tid32]= &Q6Transaction{}
+	}
+	mutex.Unlock()
+
+	var rs string
+
+	if opt == "s" {
+		mutex.Lock()
+		transactionMap[tid32].start_arrived = true
+		mutex.Unlock()
+		rs = "0\n"
+	} else if opt == "a" {
+		operation := Q6Operation{seq:seq32, tweetid:tweetid, tag:tag, operation_type:"a"}
+		mutex.Lock()
+
+		transactionMap[tid32].opts = append(transactionMap[tid32].opts, operation)
+		sort.Sort(Q6Queue(transactionMap[tid32].opts))
+
+		mutex.Unlock()
+		//write should be blocking until it is the first one in the queue
+		//then proceed the requests by the order of seq number
+		var s int
+		mutex.Lock()
+		s = transactionMap[tid32].opts[0].seq
+		mutex.Unlock()
+		for  s != seq32 {
+			time.Sleep(time.Millisecond)
+			mutex.Lock()
+			s = transactionMap[tid32].opts[0].seq
+			mutex.Unlock()
+		}
+		//do the write on a goroutine
+		go query6write(tweetid, tag)
+		rs = fmt.Sprintf("%s\n", tag)
+		mutex.Lock()
+		transactionMap[tid32].opts = transactionMap[tid32].opts[1:]
+		mutex.Unlock()
+	} else if opt  == "r" {
+		operation := Q6Operation{seq:seq32, tweetid:tweetid, operation_type:"r"}
+		mutex.Lock()
+
+		transactionMap[tid32].opts = append(transactionMap[tid32].opts, operation)
+		sort.Sort(Q6Queue(transactionMap[tid32].opts))
+
+		mutex.Unlock()
+		//read should be blocking until it is the first one in the queue
+		//then proceed the requests by the order of seq number
+
+		var s int
+		mutex.Lock()
+		s = transactionMap[tid32].opts[0].seq
+		mutex.Unlock()
+		for  s != seq32 {
+			time.Sleep(time.Millisecond)
+			mutex.Lock()
+			s = transactionMap[tid32].opts[0].seq
+			mutex.Unlock()
+		}
+
+		rs = fmt.Sprintf("%s\n", query6read(tweetid))//should be the result of query
+		mutex.Lock()
+		transactionMap[tid32].opts = transactionMap[tid32].opts[1:]
+		mutex.Unlock()
+	} else if opt == "e" {
+		mutex.Lock()
+		transactionMap[tid32].end_arrived = true
+		mutex.Unlock()
+		rs = "0\n"
+	}
+
 	body := fmt.Sprintf("%s%s", responseHeader, rs)
 	w.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
@@ -337,6 +468,34 @@ func query5(min_uid string, max_uid string) string {
 	return strconv.Itoa(total_count) + "\n"
 }
 
+func query6read(tid string) string {
+	//tid_64, _ := strconv.ParseInt(tid, 10, 64)
+	stmt := getQueryStmt("6read", tid)
+	if stmt == nil {
+		fmt.Printf("stmt nil")
+	}
+	var content string
+	err := stmt.QueryRow(tid).Scan(&content)
+	if err != nil {
+		return ""
+	}
+
+	writeLock.Lock()
+	if _, ok:= writeLogMap[tid]; ok {
+		 content = fmt.Sprintf("%s%s", content, writeLogMap[tid])
+	}
+	writeLock.Unlock()
+
+	return content
+}
+
+func query6write(tweetid string, tag string) {
+	//append to tag
+	writeLock.Lock()
+	writeLogMap[tweetid] = tag
+	writeLock.Unlock()
+}
+
 func unescape(line string) string {
 	line = strings.Replace(line, "\\n", "\n", -1)
 	line = strings.Replace(line, "\\r", "\r", -1)
@@ -363,8 +522,10 @@ func getQueryStmt(prefix string, key string) *sql.Stmt {
 		i = (int)(hash(key)%3 + 1)
 	} else if prefix == "3" {
 		i = (int)(hash(key)%6 + 1)
-	} else {
+	} else if prefix == "2" {
 		i = (int)(hash(key)%10 + 1)
+	} else {
+		i = (int)(hash(key)%20 + 1)
 	}
 	return qtable[prefix+strconv.Itoa(i)]
 }
@@ -428,15 +589,22 @@ func main() {
 	initConfig()
 	responseHeader = fmt.Sprintf("%s,%s\n", config.TeamId, config.TeamAwsAccountId)
 
+	mutex = &sync.Mutex{}
+
+	writeLock = &sync.Mutex{}
+
 	// shared database connection
 	db = getDbConn()
 	defer db.Close()
+
+	writeLogMap = make(map[string]string)
 
 	qtable = make(map[string]*sql.Stmt)
 	prefix2 := "2"
 	prefix3 := "3"
 	prefix4 := "4"
 	prefix5 := "5"
+	prefix6read := "6read"
 	for i := 1; i < 11; i++ {
 		qtable[prefix2+strconv.Itoa(i)], _ = db.Prepare("select tidst from tweets_q2_" + strconv.Itoa(i) + " where uidt = ? limit 1")
 	}
@@ -449,6 +617,13 @@ func main() {
 	for i := 1; i < 5; i++ {
 		qtable[prefix5+strconv.Itoa(i)], _ = db.Prepare("select counts from tweets_q5_" + strconv.Itoa(i) + " where uid = ? limit 1")
 	}
+	for i := 1; i < 21; i++ {
+		qtable[prefix6read+strconv.Itoa(i)], _ = db.Prepare("select tweet from tweets_q6_" + strconv.Itoa(i) + " where tid = ? limit 1")
+	}
+
+
+	//initialize the map
+	transactionMap = make(map[int]*Q6Transaction)
 
 	http.HandleFunc("/index.html", index)
 	http.HandleFunc("/q1", q1Handler)
@@ -456,5 +631,6 @@ func main() {
 	http.HandleFunc("/q3", q3Handler)
 	http.HandleFunc("/q4", q4Handler)
 	http.HandleFunc("/q5", q5Handler)
+	http.HandleFunc("/q6", q6Handler)
 	http.ListenAndServe(fmt.Sprintf(":%d", config.HttpPort), nil)
 }
