@@ -522,8 +522,10 @@ func getQueryStmt(prefix string, key string) *sql.Stmt {
 		i = (int)(hash(key)%3 + 1)
 	} else if prefix == "3" {
 		i = (int)(hash(key)%6 + 1)
-	} else {
+	} else if prefix == "2" {
 		i = (int)(hash(key)%10 + 1)
+	} else {
+		i = (int)(hash(key)%20 + 1)
 	}
 	return qtable[prefix+strconv.Itoa(i)]
 }
@@ -615,7 +617,7 @@ func main() {
 	for i := 1; i < 5; i++ {
 		qtable[prefix5+strconv.Itoa(i)], _ = db.Prepare("select counts from tweets_q5_" + strconv.Itoa(i) + " where uid = ? limit 1")
 	}
-	for i := 1; i < 11; i++ {
+	for i := 1; i < 21; i++ {
 		qtable[prefix6read+strconv.Itoa(i)], _ = db.Prepare("select tweet from tweets_q6_" + strconv.Itoa(i) + " where tid = ? limit 1")
 	}
 
