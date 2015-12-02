@@ -454,7 +454,6 @@ func query5(min_uid string, max_uid string) string {
 
 		err := stmt.QueryRow(id_max_64).Scan(&content)
 		if err != nil {
-			fmt.Println("second err ", err, " id_min_64, ", id_min_64, ", max_64 ", id_max_64)
 			id_max_64 -= 1
 		} else {
 			max_search = false

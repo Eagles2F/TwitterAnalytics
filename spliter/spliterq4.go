@@ -1,10 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"hash/fnv"
+	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,24 +31,25 @@ func split(path string) {
 	if err != nil {
 		panic(err.Error())
 	}
-	scanner := bufio.NewScanner(r)
+	file, _ := ioutil.ReadFile(path)
+	buf := bytes.NewBuffer(file)
+	for {
+		line, err := buf.ReadString('\n')
+		if len(line) == 0 {
+			if err != nil {
+				if err == io.EOF {
+					return
+				}
+			}
+		}
+		vars := strings.Split(line, "\t")
 
-	i := 0
-	var buffer bytes.Buffer
-	// uid timestamp (float) tid text score
-	for scanner.Scan() {
-		i++
-		l := scanner.Text()
-		vars := strings.Split(l, "\t")
-		loc := hash(vars[0])%3 + 1
-		w := wmap[loc]
-		buffer.WriteString(l + "\n")
-		w.WriteString(buffer.String())
-		buffer.Reset()
-	}
-	fmt.Printf("line number %d\n", i)
-	if scanner.Err() != nil {
-		panic(scanner.Err())
+		w := wmap[hash(vars[0])%3+1]
+		w.WriteString(line)
+		if err != nil && err != io.EOF {
+			fmt.Println("error happens")
+			return
+		}
 	}
 }
 
